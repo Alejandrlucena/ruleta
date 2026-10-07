@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101326" />
+    <meta name="description" content="Crea una ruleta con tus imágenes y gira sin repetir resultados." />
+    <title>La Ruleta — El azar decide</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <script type="module" src="./js/app.js"></script>
+  </head>
+  <body>
+    <div class="page-glow" aria-hidden="true"></div>
+    <div class="site-wrap">
+      <header class="site-header">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>LA RULETA<span class="brand-period">.</span></span></div>
+        <span class="header-tag" id="header-tag">LISTO PARA GIRAR <span aria-hidden="true">↗</span></span>
+      </header>
+
+      <main>
+        <div class="intro">
+          <div class="eyebrow"><span class="eyebrow-line"></span> DECISIONES AL AZAR, SIN REPETICIONES</div>
+          <h1>Deja que el azar <em>decida.</em></h1>
+          <p id="intro-description">Gira la ruleta y descubre qué sale. Cada opción aparece una sola vez por ronda.</p>
+          <button class="settings-toggle" id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings-panel">PERSONALIZAR OPCIONES <span aria-hidden="true">↗</span></button>
+        </div>
+
+        <div class="workspace">
+          <section class="wheel-panel" aria-labelledby="wheel-title">
+            <div class="panel-heading">
+              <div><span class="section-index">01 / JUGAR</span><h2 id="wheel-title">La ruleta</h2></div>
+              <span class="remaining-badge"><span class="badge-dot"></span><span id="remaining-count">0</span> disponibles</span>
+            </div>
+
+            <div class="wheel-area">
+              <div class="wheel-pointer" aria-hidden="true"></div>
+              <div class="wheel-rim">
+                <canvas id="wheel" role="img" aria-label="Ruleta con las opciones disponibles"></canvas>
+                <div class="wheel-hub" aria-hidden="true"><span></span></div>
+              </div>
+            </div>
+
+            <div class="wheel-bottom">
+              <button class="spin-button" id="spin-button" type="button" disabled>GIRAR RULETA <span aria-hidden="true">↗</span></button>
+              <p class="spin-hint" id="spin-hint">Preparando la ruleta...</p>
+              <div class="round-actions" id="round-actions" hidden>
+                <button class="round-reset" id="undo-button" type="button" hidden>DESHACER ÚLTIMA TIRADA</button>
+                <button class="round-reset" id="reset-button" type="button" hidden>REINICIAR RONDA</button>
+              </div>
+            </div>
+            <div class="result" id="result" role="status" aria-live="polite" hidden></div>
+          </section>
+
+          <div class="sidebar" id="settings-panel">
+            <section class="card" aria-labelledby="add-title">
+              <div class="panel-heading"><div><span class="section-index">02 / CONFIGURAR</span><h2 id="add-title">Nueva opción</h2></div></div>
+              <form id="option-form" novalidate>
+                <label class="field-label" for="image-file">Imagen <span class="optional">opcional</span></label>
+                <label class="upload-zone" for="image-file" id="upload-zone">
+                  <span class="upload-symbol" aria-hidden="true">+</span>
+                  <span id="upload-text"><strong>Elige una imagen</strong><small>JPG, PNG, WebP o GIF · máx. 12 MB</small></span>
+                  <img id="upload-preview" alt="Vista previa de la imagen seleccionada" hidden />
+                </label>
+                <input id="image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                <div class="field-divider"><span>o usa una URL de imagen</span></div>
+                <input class="text-input" id="image-url" type="text" inputmode="url" placeholder="https://... o ./imagenes/foto.jpg" autocomplete="off" />
+                <label class="field-label name-label" for="option-name">Nombre <span class="optional">opcional si hay imagen</span></label>
+                <input class="text-input" id="option-name" type="text" maxlength="40" placeholder="Ej. Pizza, película, persona..." autocomplete="off" />
+                <button class="add-button" id="add-button" type="submit">+ AÑADIR OPCIÓN</button>
+              </form>
+              <p class="form-note">Las imágenes subidas se comprimen y se incluyen en el JSON al exportar.</p>
+            </section>
+
+            <section class="card options-card" aria-labelledby="options-title">
+              <div class="panel-heading options-heading"><div><span class="section-index">03 / PARTICIPANTES</span><h2 id="options-title">Opciones <span class="heading-count" id="total-count">0</span></h2></div></div>
+              <div class="options-list" id="options-list"></div>
+              <div class="card-actions">
+                <button class="small-button" id="export-button" type="button">Descargar config.json</button>
+                <label class="small-button file-button" for="import-file">Importar JSON</label>
+                <input id="import-file" type="file" accept="application/json,.json" />
+                <button class="small-button" id="restore-button" type="button">Restaurar inicial</button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="bottom-grid">
+          <section class="card history-card" aria-labelledby="history-title">
+            <div class="panel-heading"><div><span class="section-index">04 / ESTA RONDA</span><h2 id="history-title">Ya han salido <span class="heading-count" id="history-count">0</span></h2></div></div>
+            <div id="history-list" class="history-list"></div>
+          </section>
+          <section class="card music-card" aria-labelledby="music-title">
+            <div class="panel-heading"><div><span class="section-index">05 / AMBIENTE</span><h2 id="music-title">Ponle música</h2></div><span class="music-decoration" aria-hidden="true">♫</span></div>
+            <p class="music-description" id="music-description">La música comienza al girar. Puedes pausarla o ajustar el volumen cuando quieras.</p>
+            <div class="music-controls">
+              <button class="music-play" id="music-play" type="button" aria-label="Reproducir música">▶</button>
+              <label class="music-file-button" for="music-file">Elegir MP3</label>
+              <input id="music-file" type="file" accept="audio/mpeg,.mp3" />
+              <label class="volume-label" for="music-volume">Volumen</label>
+              <input id="music-volume" type="range" min="0" max="100" value="45" aria-label="Volumen" />
+            </div>
+            <span class="music-source" id="music-source">Música de fondo · MP3</span>
+          </section>
+        </div>
+        <p class="page-note">Los cambios desde esta web se guardan solo en este navegador. Para publicar una ruleta ya preparada para todos: añade las opciones, descarga <code>config.json</code> y sustituye el archivo del proyecto. La música es <code>musica.mp3</code>, junto a <code>index.html</code>. Las imágenes subidas van dentro del JSON; si usas rutas locales, sube también esos archivos. «Restaurar inicial» descarta tus cambios locales.</p>
+      </main>
+      <footer>HECHO PARA QUE CADA GIRO CUENTE <span aria-hidden="true">✳</span></footer>
+    </div>
+    <div class="toast" id="toast" role="alert" hidden></div>
+  </body>
+</html>
