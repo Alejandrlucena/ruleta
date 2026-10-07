@@ -1,6 +1,6 @@
-﻿import { Roulette } from './roulette.js?v=6';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=6';
-import { setupAudio } from './audio.js?v=6';
+﻿import { Roulette } from './roulette.js?v=7';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=7';
+import { setupAudio } from './audio.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
@@ -20,6 +20,12 @@ function teams() {
 }
 
 function needsTeams() {
+  return prefs.mode === 'equipos' || prefs.mode === 'supervivencia' || (prefs.mode === 'duelo' && prefs.duel === 'own');
+}
+
+// Equipos, Supervivencia y el 1 vs 1 de ruletas propias giran por turnos:
+// cada jugador solo ve y tira con sus propias opciones.
+function turnoPorEquipo() {
   return prefs.mode === 'equipos' || prefs.mode === 'supervivencia' || (prefs.mode === 'duelo' && prefs.duel === 'own');
 }
 
@@ -298,7 +304,9 @@ function render() {
   const remaining = remainingOptions();
   $('remaining-count').textContent = remaining.length;
   $('spin-button').disabled = spinning || !remaining.length;
-  $('spin-button').firstChild.textContent = spinning ? 'GIRANDO... ' : prefs.mode === 'duelo' ? 'TIRAR DUELO ' : 'GIRAR RULETA ';
+  $('spin-button').firstChild.textContent = spinning
+    ? 'GIRANDO... '
+    : (turnoPorEquipo() || prefs.mode === 'duelo') ? 'TIRAR ' : 'GIRAR RULETA ';
   $('remove-drawn').disabled = spinning;
   const forcedOff = prefs.mode === 'supervivencia' || (prefs.mode === 'duelo' && prefs.duel === 'own');
   if (forcedOff) $('remove-drawn').checked = true;
@@ -307,25 +315,27 @@ function render() {
     : prefs.removeDrawn
       ? 'Cada opción sale una sola vez por ronda'
       : 'Las opciones pueden volver a salir';
-  $('spin-hint').textContent = spinning
-    ? 'La suerte está echada...'
-    : !remaining.length && state.options.length
-      ? 'Ronda completada. Reinicia para volver a jugar.'
-      : !state.options.length
-        ? 'Personaliza tus opciones para empezar.'
+
+  let pista;
+  if (spinning) pista = 'La suerte está echada...';
+  else if (!remaining.length && state.options.length) pista = 'Ronda completada. Reinicia para volver a jugar.';
+  else if (!state.options.length) pista = 'Personaliza tus opciones para empezar.';
+  else if (turnoPorEquipo()) {
+    const { a, b } = splitByTeam();
+    const faltan = [];
+    if (!a.length) faltan.push(teams()[0]?.name ?? 'Jugador 1');
+    if (!b.length && (prefs.mode !== 'equipos' || prefs.removeDrawn)) faltan.push(teams()[1]?.name ?? 'Jugador 2');
+    pista = faltan.length
+      ? `Asigna opciones a ${faltan.join(' y ')} en el panel de equipos.`
+      : prefs.mode === 'supervivencia'
+        ? 'Turnos alternos: cada uno tira con lo suyo hasta que quede un superviviente.'
         : prefs.mode === 'equipos'
-          ? 'Cada tiro suma un turno al equipo de la opción.'
-          : prefs.mode === 'supervivencia'
-            ? 'Se eliminan hasta que solo quede un superviviente.'
-        : prefs.mode === 'duelo'
-          ? prefs.duel === 'own'
-            ? (splitByTeam().a.length && splitByTeam().b.length
-                ? 'Turnos alternos: cada jugador tira con sus opciones.'
-                : 'Asigna opciones a los dos jugadores en el panel de equipos.')
-            : 'Dos tiradas seguidas para resolver el duelo.'
-              : prefs.removeDrawn
-                ? 'Cada resultado se retira de las siguientes tiradas.'
-                : 'Puedes volver a salir la misma opción.';
+          ? 'Turnos alternos: cada equipo tira con sus opciones.'
+          : 'Turnos alternos: cada jugador tira con sus opciones.';
+  } else if (prefs.mode === 'duelo') pista = 'Dos tiradas seguidas para resolver el duelo.';
+  else if (prefs.removeDrawn) pista = 'Cada resultado se retira de las siguientes tiradas.';
+  else pista = 'Puedes volver a salir la misma opción.';
+  $('spin-hint').textContent = pista;
   $('add-button').disabled = spinning;
   $('round-actions').hidden = !state.history.length;
   $('reset-button').hidden = !state.history.length;
@@ -336,6 +346,7 @@ function render() {
   $('export-button').disabled = spinning || !state.options.length;
   $('save-preset-button').disabled = spinning || !state.options.length;
   $('team-add').disabled = spinning || teams().length >= 12;
+  const porTurnos = turnoPorEquipo();
   $('remove-drawn').disabled = spinning || prefs.mode === 'supervivencia' || (prefs.mode === 'duelo' && prefs.duel === 'own');
   renderModeBar();
   renderWheels();
@@ -368,7 +379,7 @@ function nombreTurno() {
 }
 
 function renderWheels() {
-  const porTurno = prefs.mode === 'duelo' && prefs.duel === 'own';
+  const porTurno = turnoPorEquipo();
   const banner = $('turn-banner');
   banner.hidden = !porTurno;
   if (!porTurno) {
@@ -587,13 +598,17 @@ $('team-form').addEventListener('submit', (event) => {
 
 $('spin-button').addEventListener('click', async () => {
   if (spinning) return;
+  audioControls.startOnSpin();
+  if (turnoPorEquipo()) {
+    await spinOwnWheels();
+    return;
+  }
   if (prefs.mode === 'duelo') {
     await spinDuel();
     return;
   }
   const remaining = remainingOptions();
   if (!remaining.length) return;
-  audioControls.startOnSpin();
   spinning = true;
   $('result').hidden = true;
   render();
@@ -603,10 +618,7 @@ $('spin-button').addEventListener('click', async () => {
   showResult(winner);
   await new Promise((resolve) => setTimeout(resolve, 850));
   spinning = false;
-  const remove = prefs.removeDrawn || prefs.mode === 'supervivencia';
-  const scores = { ...state.scores };
-  if (prefs.mode === 'equipos' && winner.team) scores[winner.team] = (scores[winner.team] ?? 0) + 1;
-  update({ ...state, history: remove ? [...state.history, winner.id] : state.history, scores });
+  update({ ...state, history: prefs.removeDrawn ? [...state.history, winner.id] : state.history });
 });
 function showResult(winner) {
   const result = $('result');
@@ -627,10 +639,6 @@ function showResult(winner) {
 }
 
 async function spinDuel() {
-  if (prefs.duel === 'own') {
-    await spinOwnWheels();
-    return;
-  }
   const pool = duelPool();
   if (!pool.length) {
     notify('No hay opciones para tirar. Añade opciones al duel.');
@@ -705,7 +713,7 @@ async function spinOwnWheels() {
     }
     return;
   }
-  if (!rival.length) {
+  if (prefs.mode !== 'equipos' && !rival.length) {
     notify(`${nombreRival} no tiene opciones asignadas.`);
     return;
   }
@@ -723,13 +731,16 @@ async function spinOwnWheels() {
   await new Promise((resolve) => setTimeout(resolve, 900));
   const scores = { ...state.scores };
   if (winner.team) scores[winner.team] = (scores[winner.team] ?? 0) + 1;
+  // Supervivencia y el duelo por ruletas propias siempre retiran la opcion;
+  // en Equipos depende del interruptor, para poder repetir si se quiere.
+  const quitar = prefs.mode !== 'equipos' || prefs.removeDrawn;
   spinning = false;
   update({
     ...state,
-    history: [...state.history, winner.id],
+    history: quitar ? [...state.history, winner.id] : state.history,
     scores,
     turn: turno === 'a' ? 'b' : 'a',
-    duel: { winner: `${nombre}: ${winner.name}`, a: nombre, b: winner.name }
+    duel: prefs.mode === 'duelo' ? { winner: `${nombre}: ${winner.name}`, a: nombre, b: winner.name } : null
   });
 }
 
@@ -742,7 +753,7 @@ $('undo-button').addEventListener('click', () => {
     scores[restored.team] = Math.max(0, (scores[restored.team] ?? 0) - 1);
   }
   $('result').hidden = true;
-  const porTurnos = prefs.mode === 'duelo' && prefs.duel === 'own';
+  const porTurnos = turnoPorEquipo();
   update({
     ...state,
     history: state.history.slice(0, -1),
