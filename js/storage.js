@@ -4,7 +4,7 @@ export function newId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-const MODES = ['individual', 'equipos', 'supervivencia', 'duelo'];
+const MODES = ['individual', 'equipos', 'duelo'];
 const DUELS = ['list', 'own'];
 
 function normalizeOptions(options) {
