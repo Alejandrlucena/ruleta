@@ -83,8 +83,7 @@ h2 { margin-top: 7px; font-size: 23px; font-weight: 700; letter-spacing: -.055em
 .duel-result small { display: block; margin-bottom: 4px; color: #d7fa83; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
 .duel-result strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
 .teams-card .panel-heading { margin-bottom: 14px; }
-.team-editor { display: grid; gap: 6px; margin-bottom: 12px; }
-.team-row { display: flex; align-items: center; gap: 9px; }
+.team-editor { display: grid; gap: 6px; margin-bottom: 12px; }.team-row { display: flex; align-items: center; gap: 9px; }
 .team-name-input { flex: 1; min-width: 0; padding: 9px 11px; border: 1px solid #454a62; border-radius: 7px; background: #272b42; color: #f5f2ed; outline: 0; font-size: 12px; }
 .team-name-input:focus { border-color: #d7fa83; }
 .team-form { display: flex; gap: 8px; }
@@ -115,6 +114,13 @@ select.text-input { appearance: none; background-image: linear-gradient(45deg, t
 .settings-open .sidebar { display: grid; }
 .card { padding: 25px; }
 .card .panel-heading { margin-bottom: 23px; }
+.card-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.card-toggle h2 { margin-top: 7px; }
+.card-toggle .card-chevron { flex: none; color: #8f96ad; font-size: 13px; transition: transform .2s, color .2s; }
+.card-toggle:hover .card-chevron { color: #d7fa83; }
+.card-toggle[aria-expanded='false'] .card-chevron { transform: rotate(-90deg); }
+.card-body { margin-top: 23px; }
+.card-toggle[aria-expanded='false'] + .card-body { display: none; }
 .field-label { display: block; color: #ecedf3; font-size: 12px; font-weight: 700; margin-bottom: 10px; }
 .optional { color: #8389a5; font-size: 10px; font-weight: 500; margin-left: 5px; }
 .upload-zone { min-height: 92px; border: 1px dashed #727992; border-radius: 9px; display: flex; align-items: center; gap: 14px; padding: 14px; cursor: pointer; background: #252940; transition: border-color .2s, background .2s; }

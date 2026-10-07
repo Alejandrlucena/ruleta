@@ -1,6 +1,6 @@
-﻿import { Roulette } from './roulette.js?v=9';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=9';
-import { setupAudio } from './audio.js?v=9';
+﻿import { Roulette } from './roulette.js?v=10';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=10';
+import { setupAudio } from './audio.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
@@ -153,6 +153,41 @@ function renderOptions() {
     list.append(row);
   });
 }
+
+const COLLAPSE_KEY = 'la-ruleta-colapsados-v1';
+
+function plegadosGuardados() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COLLAPSE_KEY));
+    return saved && typeof saved === 'object' ? saved : {};
+  } catch {
+    return {};
+  }
+}
+
+function aplicarPlegados() {
+  const guardados = plegadosGuardados();
+  document.querySelectorAll('.card-toggle').forEach((boton) => {
+    const tarjeta = boton.closest('.collapsible');
+    if (!tarjeta) return;
+    const clave = tarjeta.dataset.collapse;
+    const abierto = guardados[clave] === undefined ? true : !guardados[clave];
+    boton.setAttribute('aria-expanded', String(abierto));
+  });
+}
+
+document.querySelectorAll('.card-toggle').forEach((boton) => {
+  boton.addEventListener('click', () => {
+    const tarjeta = boton.closest('.collapsible');
+    if (!tarjeta) return;
+    const abierto = boton.getAttribute('aria-expanded') === 'true';
+    boton.setAttribute('aria-expanded', String(!abierto));
+    const guardados = plegadosGuardados();
+    guardados[tarjeta.dataset.collapse] = abierto;
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(guardados)); } catch {}
+    wheel.resize();
+  });
+});
 
 function renderHistory() {
   const list = $('history-list');
@@ -599,12 +634,12 @@ $('team-form').addEventListener('submit', (event) => {
 $('spin-button').addEventListener('click', async () => {
   if (spinning) return;
   audioControls.startOnSpin();
-  if (turnoPorEquipo()) {
-    await spinOwnWheels();
+  if (prefs.mode === 'duelo' && prefs.duel === 'list') {
+    await spinDuel();
     return;
   }
-  if (prefs.mode === 'duelo') {
-    await spinDuel();
+  if (turnoPorEquipo()) {
+    await spinOwnWheels();
     return;
   }
   const remaining = remainingOptions();
@@ -791,4 +826,5 @@ prefs = readPrefs();
 $('remove-drawn').checked = prefs.removeDrawn;
 state = { options: [...published.options], history: [], scores: {}, duel: null, turn: 'a', activePreset: null };
 presets = await loadPresetIndex();
+aplicarPlegados();
 render();
