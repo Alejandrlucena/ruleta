@@ -12,7 +12,14 @@ export class Roulette {
   }
 
   resize() {
-    const size = Math.max(1, Math.round(this.canvas.getBoundingClientRect().width));
+    const measured = this.canvas.getBoundingClientRect().width;
+    // Un canvas oculto mide 0: se conserva el ultimo tamano valido para no
+    // dibujar con radio negativo cuando la ruleta vuelve a ser visible.
+    if (measured < 1) {
+      if (this.size > 1) this.draw();
+      return;
+    }
+    const size = Math.round(measured);
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = Math.round(size * ratio);
     this.canvas.height = Math.round(size * ratio);
@@ -46,10 +53,11 @@ export class Roulette {
   }
 
   draw() {
-    if (!this.size) return;
+    if (!this.size || this.size < 4) return;
     const ctx = this.context;
     const center = this.size / 2;
     const radius = center - 1;
+    if (radius < 2) return;
     ctx.clearRect(0, 0, this.size, this.size);
 
     if (!this.options.length) {
@@ -106,12 +114,13 @@ export class Roulette {
         ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
         ctx.restore();
         if (count <= 7) {
+          const alto = Math.max(9, Math.min(Math.sin(slice / 2) * radius * .7, this.size * .045, 18));
           ctx.fillStyle = '#1c2234';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.font = `700 ${Math.max(10, Math.min(13, this.size * .028))}px 'DM Sans', sans-serif`;
-          const name = this.fit(option.name, radius * .43);
-          ctx.fillText(name, x, y + thumbRadius + 13);
+          ctx.font = `700 ${alto}px 'DM Sans', sans-serif`;
+          const ancho = Math.max(40, Math.sin(slice / 2) * radius * .9);
+          ctx.fillText(this.fit(option.name, ancho), x, y + thumbRadius + 13);
         }
       } else {
         this.drawRadialText(option.name, angle, count, slice, radius, center);
@@ -134,20 +143,39 @@ export class Roulette {
   drawRadialText(name, angle, count, slice, radius, center) {
     const ctx = this.context;
     const text = String(name || '').trim() || '?';
-    const inner = radius * (count > 60 ? .5 : .42);
-    const outer = radius * (count > 40 ? .92 : .88);
-    const available = outer - inner;
-    const cap = Math.max(6, Math.floor(available / (Math.max(8, this.size * .019) * .56)));
+
+    // Con una sola opcion el sector es un circulo entero: no hay limite
+    // angular, asi que el texto va centrado y del tamano que quepa.
+    if (count === 1) {
+      const alto = Math.max(10, Math.min(radius * .17, this.size * .06, 28));
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 ${alto}px 'DM Sans', sans-serif`;
+      ctx.fillStyle = '#1c2234';
+      ctx.fillText(this.fit(text, radius * 1.3), center, center - radius * .22);
+      ctx.restore();
+      return;
+    }
+
+    const inner = radius * (count > 60 ? .52 : .44);
+    const outer = radius * (count > 40 ? .93 : .9);
+
+    // El grosor del sector cerca del centro limita el alto de la letra;
+    // el tramo radial disponible limita cuantos caben.
+    const grosor = Math.max(2, Math.sin(slice / 2) * inner * 2 * .62);
+    const alto = Math.min(grosor, radius * .17, Math.max(6, this.size * .06));
+    const size = Math.max(6, Math.min(alto, 30));
+    const disponible = (outer - inner) / (size * .52);
 
     ctx.save();
     ctx.translate(center, center);
     ctx.rotate(angle);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    const size = Math.max(7, Math.min(count > 40 ? 10 : 13, this.size * .022));
     ctx.font = `700 ${size}px 'DM Sans', sans-serif`;
     ctx.fillStyle = '#1c2234';
-    ctx.fillText(this.fit(text, cap * size * .56), outer, 0);
+    ctx.fillText(this.fit(text, disponible * size * .52), outer, 0);
     ctx.restore();
   }
 

@@ -4,6 +4,8 @@ import { setupAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
+const wheelA = new Roulette($('wheel-a'));
+const wheelB = new Roulette($('wheel-b'));
 let state = { options: [], history: [], activePreset: null, scores: {}, duel: null };
 let published = { version: null, options: [], music: null };
 let prefs = { removeDrawn: true, mode: 'individual', duel: 'list', teams: [] };
@@ -309,8 +311,12 @@ function render() {
           ? 'Cada tiro suma un turno al equipo de la opción.'
           : prefs.mode === 'supervivencia'
             ? 'Se eliminan hasta que solo quede un superviviente.'
-            : prefs.mode === 'duelo'
-              ? 'Dos tiradas seguidas para resolver el duelo.'
+        : prefs.mode === 'duelo'
+          ? prefs.duel === 'own'
+            ? (splitByTeam().a.length && splitByTeam().b.length
+                ? 'Cada ruleta gira con las opciones de su jugador.'
+                : 'Asigna opciones a los dos jugadores en el panel de equipos.')
+            : 'Dos tiradas seguidas para resolver el duelo.'
               : prefs.removeDrawn
                 ? 'Cada resultado se retira de las siguientes tiradas.'
                 : 'Puedes volver a salir la misma opción.';
@@ -326,13 +332,45 @@ function render() {
   $('team-add').disabled = spinning || teams().length >= 12;
   $('remove-drawn').disabled = spinning || prefs.mode === 'supervivencia' || (prefs.mode === 'duelo' && prefs.duel === 'own');
   renderModeBar();
-  wheel.setOptions(remaining);
+  renderWheels();
   renderOptions();
   renderHistory();
   renderPresets();
   renderTeamsEditor();
   renderScoreboard();
   renderDuelResult();
+}
+
+function splitByTeam() {
+  const alive = remainingOptions();
+  const primero = teams()[0];
+  const segundo = teams()[1];
+  const conEquipo = alive.filter((option) => option.team);
+  return {
+    a: conEquipo.filter((option) => option.team === primero?.id),
+    b: conEquipo.filter((option) => option.team === segundo?.id)
+  };
+}
+
+function renderWheels() {
+  const duo = prefs.mode === 'duelo' && prefs.duel === 'own';
+  $('wheel-duo').hidden = !duo;
+  $('wheel-single').hidden = duo;
+  if (!duo) {
+    wheel.setOptions(remainingOptions());
+    return;
+  }
+  const { a, b } = splitByTeam();
+  $('wheel-caption-a').textContent = teams()[0]?.name ?? 'Jugador 1';
+  $('wheel-caption-b').textContent = teams()[1]?.name ?? 'Jugador 2';
+  $('wheel-caption-a').style.color = colorOf(teams()[0]?.id);
+  $('wheel-caption-b').style.color = colorOf(teams()[1]?.id);
+  wheelA.setOptions(a);
+  wheelB.setOptions(b);
+  requestAnimationFrame(() => {
+    wheelA.resize();
+    wheelB.resize();
+  });
 }
 
 function update(next) {
@@ -421,6 +459,8 @@ $('settings-toggle').addEventListener('click', () => {
   $('settings-toggle').setAttribute('aria-expanded', String(open));
   $('settings-toggle').firstChild.textContent = open ? 'CERRAR OPCIONES ' : 'PERSONALIZAR OPCIONES ';
   wheel.resize();
+  wheelA.resize();
+  wheelB.resize();
 });
 
 $('image-file').addEventListener('change', () => {
@@ -564,9 +604,13 @@ function showResult(winner) {
 }
 
 async function spinDuel() {
+  if (prefs.duel === 'own') {
+    await spinOwnWheels();
+    return;
+  }
   const pool = duelPool();
   if (!pool.length) {
-    notify('No hay opciones para tirar. Añade opciones o asigna las que hay a los equipos.');
+    notify('No hay opciones para tirar. Añade opciones al duel.');
     return;
   }
   spinning = true;
@@ -602,8 +646,6 @@ async function spinDuel() {
     else if (b > a) { bump(second); winner = `${second.name} gana (Nº ${b} contra ${a})`; }
     else winner = `Empate a Nº ${a}`;
   } else if (prefs.duel === 'own') {
-    bump(first);
-    bump(second);
     const teamA = teams().find((team) => team.id === first.team)?.name;
     const teamB = teams().find((team) => team.id === second.team)?.name;
     winner = `${first.name}${teamA ? ` (${teamA})` : ''} contra ${second.name}${teamB ? ` (${teamB})` : ''}`;
@@ -621,10 +663,45 @@ async function spinDuel() {
 }
 
 function duelPool() {
-  if (prefs.duel === 'own') {
-    return remainingOptions().filter((option) => option.team);
-  }
   return remainingOptions();
+}
+
+async function spinOwnWheels() {
+  const { a, b } = splitByTeam();
+  if (!a.length || !b.length) {
+    const faltan = [];
+    if (!a.length) faltan.push(teams()[0]?.name ?? 'Jugador 1');
+    if (!b.length) faltan.push(teams()[1]?.name ?? 'Jugador 2');
+    notify(`${faltan.join(' y ')} no tiene opciones asignadas.`);
+    return;
+  }
+  spinning = true;
+  $('result').hidden = true;
+  $('duel-result').hidden = true;
+  render();
+
+  const indexA = Math.floor(Math.random() * a.length);
+  const indexB = Math.floor(Math.random() * b.length);
+  const first = a[indexA];
+  const second = b[indexB];
+
+  await Promise.all([wheelA.spin(indexA), wheelB.spin(indexB)]);
+
+  const scores = { ...state.scores };
+  if (first.team) scores[first.team] = (scores[first.team] ?? 0) + 1;
+  if (second.team) scores[second.team] = (scores[second.team] ?? 0) + 1;
+
+  const history = [...state.history, first.id, second.id];
+  const teamA = teams().find((team) => team.id === first.team)?.name ?? '';
+  const teamB = teams().find((team) => team.id === second.team)?.name ?? '';
+  state = {
+    ...state,
+    history,
+    scores,
+    duel: { winner: `${teamA}: ${first.name}  ·  ${teamB}: ${second.name}`, a: first.name, b: second.name }
+  };
+  spinning = false;
+  update(state);
 }
 
 $('undo-button').addEventListener('click', () => {

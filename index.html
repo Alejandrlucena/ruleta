@@ -39,12 +39,35 @@
               <button class="mode-button" id="mode-duelo" type="button" role="tab" aria-selected="false" data-mode="duelo">1 vs 1</button>
             </div>
             <div class="duel-bar" id="duel-bar" hidden>
-              <button class="duel-button is-active" type="button" data-duel="list">Misma lista</button>
-              <button class="duel-button" type="button" data-duel="own">Cada uno con las suyas</button>
-              <button class="duel-button" type="button" data-duel="number">Número más alto</button>
+              <button class="duel-button is-active" type="button" data-duel="list" title="Las dos tiradas salen de la misma lista">Lista común</button>
+              <button class="duel-button" type="button" data-duel="own" title="Cada jugador tiene su propia ruleta con sus opciones">Ruletas propias</button>
+              <button class="duel-button" type="button" data-duel="number" title="Las dos tiradas salen de la misma lista y gana el número más alto">Número más alto</button>
             </div>
 
-            <div class="wheel-area">
+            <div class="wheel-duo" id="wheel-duo" hidden>
+              <figure class="wheel-slot">
+                <figcaption class="wheel-caption" id="wheel-caption-a">Jugador 1</figcaption>
+                <div class="wheel-area wheel-area-duo">
+                  <div class="wheel-pointer" aria-hidden="true"></div>
+                  <div class="wheel-rim">
+                    <canvas id="wheel-a" role="img" aria-label="Primera ruleta, con las opciones del jugador 1"></canvas>
+                    <div class="wheel-hub" aria-hidden="true"><span></span></div>
+                  </div>
+                </div>
+              </figure>
+              <figure class="wheel-slot">
+                <figcaption class="wheel-caption" id="wheel-caption-b">Jugador 2</figcaption>
+                <div class="wheel-area wheel-area-duo">
+                  <div class="wheel-pointer" aria-hidden="true"></div>
+                  <div class="wheel-rim">
+                    <canvas id="wheel-b" role="img" aria-label="Segunda ruleta, con las opciones del jugador 2"></canvas>
+                    <div class="wheel-hub" aria-hidden="true"><span></span></div>
+                  </div>
+                </div>
+              </figure>
+            </div>
+
+            <div class="wheel-area" id="wheel-single">
               <div class="wheel-pointer" aria-hidden="true"></div>
               <div class="wheel-rim">
                 <canvas id="wheel" role="img" aria-label="Ruleta con las opciones disponibles"></canvas>
