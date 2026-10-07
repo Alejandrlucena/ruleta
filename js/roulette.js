@@ -1,5 +1,11 @@
 const COLORS = ['#e6a18a', '#b8dd92', '#8da6d8', '#e7c987', '#ad91d0', '#80c5bb', '#df9eaf', '#b8bbef'];
 
+// Alto util aproximado del sector: dos veces la distancia a la linea que separa
+// el sector de su vecino, medida desde el centro de la ruleta.
+function radioDeSector(slice, radius) {
+  return 2 * radius * .72 * Math.sin(slice / 2);
+}
+
 export class Roulette {
   constructor(canvas) {
     this.canvas = canvas;
@@ -114,14 +120,17 @@ export class Roulette {
         ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
         ctx.restore();
         if (count <= 7) {
-          const alto = Math.max(9, Math.min(Math.sin(slice / 2) * radius * .7, this.size * .045, 18));
+          // Proporcional al sector y al radio: sin maximos fijos.
+          const alto = Math.max(9, Math.min(Math.sin(slice / 2) * radius * .82, radius * .09));
           ctx.fillStyle = '#1c2234';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.font = `700 ${alto}px 'DM Sans', sans-serif`;
-          const ancho = Math.max(40, Math.sin(slice / 2) * radius * .9);
+          const ancho = Math.max(40, Math.sin(slice / 2) * radius * .95);
           ctx.fillText(this.fit(option.name, ancho), x, y + thumbRadius + 13);
         }
+      } else if (count > 1 && count <= 6 && Math.sin(slice / 2) > .45) {
+        this.drawCenteredText(option.name, angle, slice, radius, center);
       } else {
         this.drawRadialText(option.name, angle, count, slice, radius, center);
       }
@@ -140,33 +149,86 @@ export class Roulette {
     return `${text.slice(0, cut)}…`;
   }
 
+  partir(palabras, ctx, ancho, maxLineas) {
+    const lineas = [];
+    let actual = '';
+    for (const palabra of palabras) {
+      const prueba = actual ? `${actual} ${palabra}` : palabra;
+      if (ctx.measureText(prueba).width <= ancho) {
+        actual = prueba;
+        continue;
+      }
+      if (actual) lineas.push(actual);
+      actual = palabra;
+      if (lineas.length >= maxLineas) return null;
+      if (ctx.measureText(actual).width > ancho) return null;
+    }
+    if (actual) lineas.push(actual);
+    return lineas.length <= maxLineas ? lineas : null;
+  }
+
+  // Con pocos cortes el sector es enorme: el nombre va centrado y a dos lineas,
+  // que se lee mucho mejor que encogerlo para que quepa a lo largo del radio.
+  drawCenteredText(name, angle, slice, radius, center) {
+    const ctx = this.context;
+    const texto = String(name || '').trim() || '?';
+    const distancia = radius * .52;
+    const cx = center + Math.cos(angle) * distancia;
+    const cy = center + Math.sin(angle) * distancia;
+    // A esa distancia el sector abre 2 * distancia * sin(mitad), menos un margen.
+    const semiancho = distancia * Math.sin(slice / 2);
+    const anchoCaja = semiancho * 1.62;
+    const altoCaja = radioDeSector(slice, radius);
+    const palabras = texto.split(/\s+/);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#1c2234';
+    const maximo = Math.max(10, Math.min(altoCaja * .55, radius * .16));
+    for (let size = maximo; size >= 9; size -= 1) {
+      ctx.font = `700 ${size}px 'DM Sans', sans-serif`;
+      const lineas = this.partir(palabras, ctx, anchoCaja, 2);
+      if (!lineas) continue;
+      const altoTotal = lineas.length * size * 1.18;
+      if (altoTotal > altoCaja) continue;
+      lineas.forEach((linea, i) => {
+        ctx.fillText(linea, cx, cy - altoTotal / 2 + size * .59 + i * size * 1.18);
+      });
+      return;
+    }
+    ctx.font = `700 9px 'DM Sans', sans-serif`;
+    ctx.fillText(this.fit(texto, anchoCaja), cx, cy);
+  }
+
   drawRadialText(name, angle, count, slice, radius, center) {
     const ctx = this.context;
     const text = String(name || '').trim() || '?';
 
-    // Con una sola opcion el sector es un circulo entero: no hay limite
-    // angular, asi que el texto va centrado y del tamano que quepa.
+    // El tamano sale solo de la geometria del sector: nada de valores fijos.
+    //  · el grosor del sector en su parte interior limita el alto de la letra
+    //  · el tramo radial disponible limita cuantos caracteres caben
+    const inner = radius * (count > 60 ? .55 : .46);
+    const outer = radius * (count > 40 ? .95 : .95);
+    const grosor = 2 * inner * Math.sin(slice / 2);
+    const recorrido = outer - inner;
+
+    let size = grosor * .62;
+    const anchoNecesario = text.length * size * .52;
+    if (anchoNecesario > recorrido) size = recorrido / (text.length * .52);
+    size = Math.max(6, Math.min(size, radius * .2));
+
+    // Con una sola opcion el sector es un circulo entero: el limite es el diametro.
     if (count === 1) {
-      const alto = Math.max(10, Math.min(radius * .17, this.size * .06, 28));
+      const grande = Math.max(9, Math.min(radius * .3, this.size * .12));
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `700 ${alto}px 'DM Sans', sans-serif`;
+      ctx.font = `700 ${grande}px 'DM Sans', sans-serif`;
       ctx.fillStyle = '#1c2234';
-      ctx.fillText(this.fit(text, radius * 1.3), center, center - radius * .22);
+      ctx.fillText(this.fit(text, radius * 1.35), center, center - radius * .24);
       ctx.restore();
       return;
     }
-
-    const inner = radius * (count > 60 ? .52 : .44);
-    const outer = radius * (count > 40 ? .93 : .9);
-
-    // El grosor del sector cerca del centro limita el alto de la letra;
-    // el tramo radial disponible limita cuantos caben.
-    const grosor = Math.max(2, Math.sin(slice / 2) * inner * 2 * .62);
-    const alto = Math.min(grosor, radius * .17, Math.max(6, this.size * .06));
-    const size = Math.max(6, Math.min(alto, 30));
-    const disponible = (outer - inner) / (size * .52);
 
     ctx.save();
     ctx.translate(center, center);
@@ -175,7 +237,7 @@ export class Roulette {
     ctx.textBaseline = 'middle';
     ctx.font = `700 ${size}px 'DM Sans', sans-serif`;
     ctx.fillStyle = '#1c2234';
-    ctx.fillText(this.fit(text, disponible * size * .52), outer, 0);
+    ctx.fillText(this.fit(text, recorrido * .98), outer, 0);
     ctx.restore();
   }
 
