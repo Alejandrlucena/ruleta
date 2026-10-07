@@ -175,13 +175,17 @@ function renderScoreboard() {
   const rows = teams().map((team) => {
     const owned = state.options.filter((option) => option.team === team.id);
     const alive = owned.filter((option) => !drawn.has(option.id)).length;
-    const points = state.scores[team.id] ?? 0;
-    return { ...team, points, alive, total: owned.length };
+    const turns = state.scores[team.id] ?? 0;
+    return { ...team, turns, alive, total: owned.length };
   });
-  const leader = [...rows].sort((a, b) => b.points - a.points)[0];
+  const leader = [...rows].sort((a, b) => b.turns - a.turns)[0];
+  const header = document.createElement('p');
+  header.className = 'score-hint';
+  header.textContent = 'Tiros por equipo';
+  box.append(header);
   rows.forEach((row) => {
     const item = document.createElement('div');
-    item.className = `score-row${row === leader && row.points > 0 ? ' is-leader' : ''}`;
+    item.className = `score-row${row === leader && row.turns > 0 ? ' is-leader' : ''}`;
     const dot = document.createElement('span');
     dot.className = 'score-dot';
     dot.style.background = colorOf(row.id);
@@ -190,11 +194,11 @@ function renderScoreboard() {
     name.textContent = row.name;
     const alive = document.createElement('span');
     alive.className = 'score-alive';
-    alive.textContent = `${row.alive}/${row.total}`;
-    const points = document.createElement('span');
-    points.className = 'score-points';
-    points.textContent = String(row.points);
-    item.append(dot, name, alive, points);
+    alive.textContent = `${row.alive} de ${row.total}`;
+    const turns = document.createElement('span');
+    turns.className = 'score-turns';
+    turns.textContent = String(row.turns);
+    item.append(dot, name, alive, turns);
     box.append(item);
   });
 }
@@ -302,7 +306,7 @@ function render() {
       : !state.options.length
         ? 'Personaliza tus opciones para empezar.'
         : prefs.mode === 'equipos'
-          ? 'Cada giro suma un punto al equipo de la opción.'
+          ? 'Cada tiro suma un turno al equipo de la opción.'
           : prefs.mode === 'supervivencia'
             ? 'Se eliminan hasta que solo quede un superviviente.'
             : prefs.mode === 'duelo'
@@ -541,7 +545,6 @@ $('spin-button').addEventListener('click', async () => {
   if (prefs.mode === 'equipos' && winner.team) scores[winner.team] = (scores[winner.team] ?? 0) + 1;
   update({ ...state, history: remove ? [...state.history, winner.id] : state.history, scores });
 });
-
 function showResult(winner) {
   const result = $('result');
   const text = document.createElement('div');
