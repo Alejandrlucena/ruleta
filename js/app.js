@@ -1,11 +1,12 @@
 import { Roulette } from './roulette.js';
-import { compressImage, exportOptions, importOptions, loadPublishedConfig, newId, readLocalState, saveLocalState } from './storage.js';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readLocalState, saveLocalState } from './storage.js';
 import { setupAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
-let state = { options: [], history: [] };
-let published = { version: null, options: [] };
+let state = { options: [], history: [], activePreset: null };
+let published = { version: null, options: [], music: null };
+let presets = [];
 let spinning = false;
 let previewUrl = null;
 let toastTimer;
@@ -76,7 +77,7 @@ function renderOptions() {
     edit.addEventListener('click', () => {
       const name = window.prompt('Nuevo nombre:', option.name);
       if (name === null || !name.trim()) return;
-      update({ ...state, options: state.options.map((item) => item.id === option.id ? { ...item, name: name.trim().slice(0, 40) } : item) });
+      update({ ...state, options: state.options.map((item) => item.id === option.id ? { ...item, name: name.trim().slice(0, 40) } : item), activePreset: null });
     });
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -87,7 +88,7 @@ function renderOptions() {
     remove.disabled = spinning;
     remove.addEventListener('click', () => {
       $('result').hidden = true;
-      update({ options: state.options.filter((item) => item.id !== option.id), history: state.history.filter((id) => id !== option.id) });
+      update({ options: state.options.filter((item) => item.id !== option.id), history: state.history.filter((id) => id !== option.id), activePreset: null });
     });
     row.append(edit, remove);
     list.append(row);
@@ -131,9 +132,11 @@ function render() {
   $('undo-button').disabled = spinning;
   $('restore-button').disabled = spinning;
   $('export-button').disabled = spinning || !state.options.length;
+  $('save-preset-button').disabled = spinning || !state.options.length;
   wheel.setOptions(remaining);
   renderOptions();
   renderHistory();
+  renderPresets();
 }
 
 function update(next) {
@@ -141,6 +144,68 @@ function update(next) {
   if (!saveLocalState(state, published)) notify('No se ha podido guardar en el navegador. Los cambios podrían perderse al recargar.');
   render();
 }
+
+function renderPresets() {
+  const list = $('preset-list');
+  list.replaceChildren();
+  if (!presets.length) {
+    list.append(emptyMessage('Todavía no hay presets en el repositorio.'));
+    return;
+  }
+  presets.forEach((preset) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `preset-item${state.activePreset === preset.id ? ' is-active' : ''}`;
+    button.disabled = spinning;
+    const title = document.createElement('strong');
+    title.textContent = preset.name;
+    button.append(title);
+    if (preset.description) {
+      const description = document.createElement('small');
+      description.textContent = preset.description;
+      button.append(description);
+    }
+    const badge = document.createElement('span');
+    badge.className = 'preset-badge';
+    badge.textContent = state.activePreset === preset.id ? 'CARGADO' : 'CARGAR';
+    button.append(badge);
+    button.addEventListener('click', () => applyPreset(preset));
+    list.append(button);
+  });
+}
+
+async function applyPreset(preset) {
+  if (spinning) return;
+  const loading = $('spin-button');
+  loading.disabled = true;
+  try {
+    const data = await loadPreset(preset.file);
+    $('result').hidden = true;
+    update({ options: data.options, history: [], activePreset: preset.id });
+    if (data.music.src) {
+      await audioControls.setTrack(data.music, data.name);
+    }
+    notify(`${data.name} cargado: ${data.options.length} opciones.`);
+  } catch (error) {
+    notify(error.message || 'No se ha podido cargar el preset.');
+  } finally {
+    render();
+  }
+}
+
+$('save-preset-button').addEventListener('click', () => {
+  if (spinning || !state.options.length) return;
+  const suggested = (state.activePreset ?? 'mi-preset').replace(/[^\w-]+/g, '-').slice(0, 30);
+  const name = window.prompt('Nombre del preset:', suggested);
+  if (name === null) return;
+  const description = window.prompt('Descripción corta (opcional):', '') ?? '';
+  const track = audioControls.getTrack();
+  if (!track.src) {
+    notify('Esta sesión usa un MP3 local, que no se puede guardar. Usa una canción del repositorio para incluirla en el preset.');
+  }
+  downloadJson(`${name.trim().replace(/[^\w-]+/g, '-').slice(0, 30) || 'preset'}.json`, buildPreset(name.trim(), description.trim(), state.options, { src: track.src, volume: track.volume, autoplay: true }));
+  notify('Preset descargado. Ejecútalo en guardar-preset.ps1 para publicarlo en el repositorio.');
+});
 
 function clearPreview() {
   if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -193,7 +258,7 @@ $('option-form').addEventListener('submit', async (event) => {
       image = url;
     }
     const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image };
-    const next = { ...state, options: [...state.options, option] };
+    const next = { ...state, options: [...state.options, option], activePreset: null };
     if (!saveLocalState(next, published)) throw new Error('No queda espacio en el navegador. Prueba a usar URLs de imágenes o elimina algunas opciones.');
     state = next;
     $('option-form').reset();
@@ -256,7 +321,7 @@ $('restore-button').addEventListener('click', () => {
   if (spinning) return;
   if (!window.confirm('¿Descartar tus cambios locales y volver a las opciones iniciales publicadas?')) return;
   $('result').hidden = true;
-  update({ options: [...published.options], history: [] });
+  update({ options: [...published.options], history: [], activePreset: null });
   notify('Configuración inicial restaurada.');
 });
 
@@ -271,7 +336,7 @@ $('import-file').addEventListener('change', async (event) => {
   try {
     const options = await importOptions(file);
     if (spinning || !window.confirm('¿Sustituir las opciones actuales por las del archivo? El historial de esta ronda se borrará.')) return;
-    const next = { options, history: [] };
+    const next = { options, history: [], activePreset: null };
     if (!saveLocalState(next, published)) throw new Error('El archivo es demasiado grande para guardarlo en este navegador.');
     state = next;
     $('result').hidden = true;
@@ -282,7 +347,8 @@ $('import-file').addEventListener('change', async (event) => {
   }
 });
 
-const audioControls = setupAudio(notify);
 published = await loadPublishedConfig();
+const audioControls = setupAudio(notify, published.music);
 state = readLocalState(published);
+presets = await loadPresetIndex();
 render();

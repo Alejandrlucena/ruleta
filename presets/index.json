@@ -1,0 +1,11 @@
+{
+  "presets": [
+    {
+      "id": "ejemplo",
+      "name": "Ejemplo: Comida",
+      "description": "8 platos de ejemplo para probar los presets",
+      "file": "ejemplo.json",
+      "options": 8
+    }
+  ]
+}

@@ -1,4 +1,9 @@
 {
   "version": 1,
+  "music": {
+    "src": "./musica.mp3",
+    "volume": 45,
+    "autoplay": true
+  },
   "options": []
 }

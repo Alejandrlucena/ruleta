@@ -112,6 +112,18 @@ input[type='file'] { position: absolute; width: 1px; height: 1px; overflow: hidd
 .small-button:hover:not(:disabled), .music-file-button:hover { border-color: #d7fa83; color: #d7fa83; }
 .small-button:disabled { opacity: .4; }
 .empty-list { padding: 15px 0 24px; color: #9198af; font-size: 12px; line-height: 1.5; }
+.preset-description { color: #a9afc4; font-size: 11px; line-height: 1.65; margin-bottom: 16px; }
+.preset-list { display: grid; gap: 8px; }
+.preset-item { display: block; width: 100%; text-align: left; padding: 13px 14px; border: 1px solid #454a62; border-radius: 8px; background: #272b42; color: #f5f2ed; transition: border-color .2s, background .2s; }
+.preset-item:hover:not(:disabled) { border-color: #d7fa83; background: #2e3450; }
+.preset-item:disabled { opacity: .5; }
+.preset-item.is-active { border-color: #d7fa83; background: #2b3a2a; }
+.preset-item strong { display: block; font-size: 13px; font-weight: 700; }
+.preset-item small { display: block; color: #a9afc4; font-size: 10px; margin-top: 5px; line-height: 1.5; }
+.preset-item.is-active small { color: #d7fa83; }
+.preset-badge { display: inline-block; margin-top: 8px; padding: 3px 7px; border-radius: 20px; background: #3c4452; color: #d7fa83; font-size: 9px; font-weight: 800; letter-spacing: .06em; }
+.preset-item.is-active .preset-badge { background: #d7fa83; color: #17202a; }
+.save-preset-button { width: 100%; margin-top: 14px; }
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 19px; max-width: 800px; margin: 19px auto 65px; }
 .settings-open .bottom-grid { max-width: none; margin-bottom: 0; }
 .history-list { max-height: 170px; overflow: auto; scrollbar-color: #606781 transparent; scrollbar-width: thin; }

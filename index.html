@@ -52,6 +52,16 @@
           </section>
 
           <div class="sidebar" id="settings-panel">
+            <section class="card preset-card" aria-labelledby="preset-title">
+              <div class="panel-heading">
+                <div><span class="section-index">PRECARGADOS</span><h2 id="preset-title">Presets</h2></div>
+                <span class="music-decoration" aria-hidden="true">✦</span>
+              </div>
+              <p class="preset-description">Presets guardados en el repositorio. Al cargar uno se aplican sus opciones y su música.</p>
+              <div class="preset-list" id="preset-list"></div>
+              <button class="small-button save-preset-button" id="save-preset-button" type="button">Guardar mis opciones como preset</button>
+            </section>
+
             <section class="card" aria-labelledby="add-title">
               <div class="panel-heading"><div><span class="section-index">02 / CONFIGURAR</span><h2 id="add-title">Nueva opción</h2></div></div>
               <form id="option-form" novalidate>
@@ -102,7 +112,7 @@
             <span class="music-source" id="music-source">Música de fondo · MP3</span>
           </section>
         </div>
-        <p class="page-note">Los cambios desde esta web se guardan solo en este navegador. Para publicar una ruleta ya preparada para todos: añade las opciones, descarga <code>config.json</code> y sustituye el archivo del proyecto. La música es <code>musica.mp3</code>, junto a <code>index.html</code>. Las imágenes subidas van dentro del JSON; si usas rutas locales, sube también esos archivos. «Restaurar inicial» descarta tus cambios locales.</p>
+        <p class="page-note">Los cambios desde esta web se guardan solo en este navegador. Los presets viven en la carpeta <code>presets/</code> del repositorio: para publicar uno, guárdalo desde aquí y ejecutes <code>guardar-preset.ps1</code>, que lo copia, actualiza el índice y lo sube. La música se indica en <code>config.json</code> o en el propio preset y el MP3 debe estar en la carpeta <code>musica/</code>.</p>
       </main>
       <footer>HECHO PARA QUE CADA GIRO CUENTE <span aria-hidden="true">✳</span></footer>
     </div>

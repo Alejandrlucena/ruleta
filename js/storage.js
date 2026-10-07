@@ -34,12 +34,68 @@ export function readState() {
 export async function loadPublishedConfig() {
   try {
     const response = await fetch('./config.json', { cache: 'no-store' });
-    if (!response.ok) return { version: null, options: [] };
+    if (!response.ok) return { version: null, options: [], music: null };
     const config = await response.json();
-    return { version: config.version ?? null, options: normalizeOptions(config.options) };
+    return {
+      version: config.version ?? null,
+      options: normalizeOptions(config.options),
+      music: normalizeMusic(config.music)
+    };
   } catch {
-    return { version: null, options: [] };
+    return { version: null, options: [], music: null };
   }
+}
+
+function normalizeMusic(music) {
+  if (!music || typeof music !== 'object') return null;
+  const src = typeof music.src === 'string' && music.src.trim() ? music.src.trim() : null;
+  const volume = Number(music.volume);
+  return {
+    src,
+    volume: Number.isFinite(volume) ? Math.max(0, Math.min(100, Math.round(volume))) : 45,
+    autoplay: music.autoplay !== false
+  };
+}
+
+export async function loadPresetIndex() {
+  try {
+    const response = await fetch('./presets/index.json', { cache: 'no-store' });
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!Array.isArray(data.presets)) return [];
+    return data.presets.filter((preset) => preset && typeof preset.id === 'string' && typeof preset.file === 'string');
+  } catch {
+    return [];
+  }
+}
+
+export async function loadPreset(file) {
+  let preset;
+  try {
+    const response = await fetch(`./presets/${encodeURIComponent(file)}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error();
+    preset = await response.json();
+  } catch {
+    throw new Error('No se ha podido leer el preset desde el repositorio.');
+  }
+  if (!preset || !Array.isArray(preset.options) || !preset.options.length) {
+    throw new Error('El preset no contiene opciones válidas.');
+  }
+  return {
+    name: typeof preset.name === 'string' && preset.name.trim() ? preset.name.trim().slice(0, 40) : file,
+    description: typeof preset.description === 'string' ? preset.description.slice(0, 120) : '',
+    options: normalizeOptions(preset.options),
+    music: normalizeMusic(preset.music) ?? { src: null, volume: 45, autoplay: true }
+  };
+}
+
+export function buildPreset(name, description, options, music) {
+  return {
+    name: (name || 'Mi preset').slice(0, 40),
+    description: (description || '').slice(0, 120),
+    options: options.map(({ id, name: optionName, image }) => ({ id, name: optionName, image })),
+    music: { src: music.src, volume: music.volume, autoplay: music.autoplay !== false }
+  };
 }
 
 export function readLocalState(published) {
@@ -57,7 +113,7 @@ export function readLocalState(published) {
       if (progress?.version === published.version && Array.isArray(progress.history)) previousProgress = progress.history;
     } catch {}
     const history = (previousProgress.length ? previousProgress : legacy?.history ?? []).filter((id, index, all) => ids.has(id) && all.indexOf(id) === index);
-    return { options, history };
+    return { options, history, activePreset: legacy?.activePreset ?? null };
   }
   const removed = new Set(Array.isArray(saved.removedIds) ? saved.removedIds : []);
   const overrides = new Map(normalizeOptions(saved.overrides).map((option) => [option.id, option]));
@@ -65,7 +121,7 @@ export function readLocalState(published) {
   options.push(...normalizeOptions(saved.added).filter((option) => !baseIds.has(option.id)));
   const ids = new Set(options.map((option) => option.id));
   const history = saved.version === published.version && Array.isArray(saved.history) ? saved.history.filter((id, index, all) => ids.has(id) && all.indexOf(id) === index) : [];
-  return { options, history };
+  return { options, history, activePreset: typeof saved.activePreset === 'string' ? saved.activePreset : null };
 }
 
 export function saveLocalState(state, published) {
@@ -73,6 +129,7 @@ export function saveLocalState(state, published) {
   const current = new Map(state.options.map((option) => [option.id, option]));
   const payload = {
     version: published.version,
+    activePreset: state.activePreset ?? null,
     added: state.options.filter((option) => !baseIds.has(option.id)),
     removedIds: published.options.filter((option) => !current.has(option.id)).map((option) => option.id),
     overrides: published.options.filter((option) => current.has(option.id) && (current.get(option.id).name !== option.name || current.get(option.id).image !== option.image)).map((option) => current.get(option.id)),
@@ -94,16 +151,20 @@ export async function importOptions(file) {
   return options;
 }
 
-export function exportOptions(options) {
-  const json = JSON.stringify({ version: Date.now(), options }, null, 2);
+export function downloadJson(filename, data) {
+  const json = JSON.stringify(data, null, 2);
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'config.json';
+  link.download = filename;
   document.body.append(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function exportOptions(options) {
+  downloadJson('config.json', { version: Date.now(), options });
 }
 
 export async function compressImage(file) {

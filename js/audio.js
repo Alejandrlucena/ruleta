@@ -1,7 +1,7 @@
 const VOLUME_KEY = 'la-ruleta-volume-v1';
-const SONG = './musica.mp3';
+const DEFAULT_SONG = './musica.mp3';
 
-export function setupAudio(notify) {
+export function setupAudio(notify, initialMusic = null) {
   const audio = new Audio();
   const playButton = document.getElementById('music-play');
   const fileInput = document.getElementById('music-file');
@@ -10,6 +10,9 @@ export function setupAudio(notify) {
   let localUrl = null;
   let pausedByUser = false;
   let pendingUnlock = false;
+  let trackSrc = initialMusic?.src || DEFAULT_SONG;
+  let trackLabel = null;
+  let autoplayWanted = initialMusic ? initialMusic.autoplay !== false : true;
   audio.loop = true;
 
   try {
@@ -25,12 +28,16 @@ export function setupAudio(notify) {
     playButton.setAttribute('aria-label', playing ? 'Pausar música' : 'Reproducir música');
   }
 
+  function applyVolume() {
+    audio.volume = Number(volumeInput.value) / 100;
+  }
+
   async function play() {
-    if (!audio.src) audio.src = SONG;
+    if (!audio.src) audio.src = trackSrc;
     audio.muted = false;
     try {
       await audio.play();
-      source.textContent = 'Música de fondo';
+      source.textContent = trackLabel || 'Música de fondo';
       return true;
     } catch (error) {
       if (error.name === 'NotAllowedError') {
@@ -45,7 +52,7 @@ export function setupAudio(notify) {
   }
 
   async function playMutedThenUnmute() {
-    if (!audio.src) audio.src = SONG;
+    if (!audio.src) audio.src = trackSrc;
     audio.muted = true;
     let started = false;
     try {
@@ -57,7 +64,7 @@ export function setupAudio(notify) {
     }
     audio.muted = false;
     if (!started) return false;
-    source.textContent = 'Música de fondo';
+    source.textContent = trackLabel || 'Música de fondo';
     return true;
   }
 
@@ -105,14 +112,16 @@ export function setupAudio(notify) {
     audio.load();
     if (localUrl) URL.revokeObjectURL(localUrl);
     localUrl = URL.createObjectURL(file);
-    audio.src = localUrl;
+    trackSrc = localUrl;
+    trackLabel = `${file.name} · solo en esta sesión`;
+    audio.src = trackSrc;
     audio.muted = false;
-    source.textContent = `${file.name} · solo en esta sesión`;
+    source.textContent = trackLabel;
     if (resume) void play();
   });
 
   volumeInput.addEventListener('input', () => {
-    audio.volume = Number(volumeInput.value) / 100;
+    applyVolume();
     try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
   });
 
@@ -123,9 +132,31 @@ export function setupAudio(notify) {
     syncButton();
   });
 
-  void start();
+  if (autoplayWanted) void start();
 
   return {
+    getTrack() {
+      return { src: localUrl ? null : trackSrc, label: trackLabel, volume: Number(volumeInput.value) };
+    },
+    async setTrack(music, label) {
+      if (!music?.src) return;
+      trackSrc = music.src;
+      trackLabel = label || null;
+      if (Number.isFinite(music.volume)) {
+        volumeInput.value = music.volume;
+        try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
+      }
+      applyVolume();
+      pausedByUser = false;
+      pendingUnlock = false;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      audio.muted = false;
+      audio.src = trackSrc;
+      source.textContent = trackLabel || 'Música de fondo';
+      if (music.autoplay !== false) await play();
+    },
     startOnSpin() {
       if (pausedByUser || !audio.paused) return;
       pendingUnlock = false;
