@@ -57,6 +57,35 @@ h2 { margin-top: 7px; font-size: 23px; font-weight: 700; letter-spacing: -.055em
 .spin-button:disabled { opacity: .46; box-shadow: none; }
 .spin-button span { font-size: 18px; vertical-align: -2px; margin-left: 11px; }
 .spin-hint { color: #a6abc1; font-size: 11px; margin-top: 12px; }
+.mode-bar { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px; border: 1px solid #ffffff19; border-radius: 10px; background: #21253c; }
+.mode-button { flex: 1 1 auto; min-width: 88px; padding: 10px 12px; border: 0; border-radius: 7px; background: transparent; color: #a9afc4; font-size: 11px; font-weight: 700; letter-spacing: .04em; transition: background .2s, color .2s; }
+.mode-button:hover { color: #f5f2ed; background: #2b3049; }
+.mode-button.is-active { background: #d7fa83; color: #17202a; }
+.duel-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.duel-button { flex: 1 1 auto; padding: 8px 10px; border: 1px solid #454a62; border-radius: 20px; background: #252940; color: #a9afc4; font-size: 10px; font-weight: 700; }
+.duel-button:hover { color: #f5f2ed; border-color: #6b7290; }
+.duel-button.is-active { border-color: #d7fa83; background: #d7fa8318; color: #d7fa83; }
+.scoreboard { display: grid; gap: 6px; margin-top: 18px; max-width: 360px; margin-left: auto; margin-right: auto; }
+.score-row { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: 1px solid #ffffff14; border-radius: 8px; background: #21253c; font-size: 12px; }
+.score-row.is-leader { border-color: #d7fa8370; background: #d7fa830f; }
+.score-dot, .team-dot { flex: none; width: 11px; height: 11px; border-radius: 50%; }
+.score-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-alive { color: #939ab1; font-size: 10px; }
+.score-points { min-width: 24px; text-align: right; color: #d7fa83; font-weight: 800; font-variant-numeric: tabular-nums; }
+.duel-result { margin: 18px auto 0; padding: 13px; max-width: 360px; border: 1px solid #d7fa836e; border-radius: 10px; background: #d7fa8314; text-align: center; }
+.duel-result small { display: block; margin-bottom: 4px; color: #d7fa83; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+.duel-result strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.result-score { display: block; margin-top: 4px; color: #d7fa83; font-size: 11px; font-style: normal; font-weight: 800; }
+.teams-card .panel-heading { margin-bottom: 14px; }
+.team-editor { display: grid; gap: 6px; margin-bottom: 12px; }
+.team-row { display: flex; align-items: center; gap: 9px; }
+.team-name-input { flex: 1; min-width: 0; padding: 9px 11px; border: 1px solid #454a62; border-radius: 7px; background: #272b42; color: #f5f2ed; outline: 0; font-size: 12px; }
+.team-name-input:focus { border-color: #d7fa83; }
+.team-form { display: flex; gap: 8px; }
+.team-form .text-input { flex: 1; min-width: 0; }
+.team-field, .number-field { margin-top: 19px; }
+select.text-input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #8c92a9 50%), linear-gradient(135deg, #8c92a9 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+.option-team-select { flex: none; max-width: 96px; padding: 6px 8px; border: 1px solid #454a62; border-left: 3px solid #555b73; border-radius: 6px; background: #272b42; color: #e3e4ec; font-size: 10px; }
 .rule-switch { display: inline-flex; align-items: center; gap: 11px; margin-top: 20px; cursor: pointer; text-align: left; }
 .rule-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .switch { flex: none; width: 40px; height: 22px; border-radius: 20px; background: #3c4258; border: 1px solid #565c74; position: relative; transition: background .2s, border-color .2s; }

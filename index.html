@@ -32,6 +32,18 @@
               <span class="remaining-badge"><span class="badge-dot"></span><span id="remaining-count">0</span> disponibles</span>
             </div>
 
+            <div class="mode-bar" role="tablist" aria-label="Modo de juego">
+              <button class="mode-button is-active" id="mode-individual" type="button" role="tab" aria-selected="true" data-mode="individual">Individual</button>
+              <button class="mode-button" id="mode-equipos" type="button" role="tab" aria-selected="false" data-mode="equipos">Equipos</button>
+              <button class="mode-button" id="mode-supervivencia" type="button" role="tab" aria-selected="false" data-mode="supervivencia">Supervivencia</button>
+              <button class="mode-button" id="mode-duelo" type="button" role="tab" aria-selected="false" data-mode="duelo">1 vs 1</button>
+            </div>
+            <div class="duel-bar" id="duel-bar" hidden>
+              <button class="duel-button is-active" type="button" data-duel="list">Misma lista</button>
+              <button class="duel-button" type="button" data-duel="own">Cada uno con las suyas</button>
+              <button class="duel-button" type="button" data-duel="number">Número más alto</button>
+            </div>
+
             <div class="wheel-area">
               <div class="wheel-pointer" aria-hidden="true"></div>
               <div class="wheel-rim">
@@ -54,6 +66,8 @@
               </div>
             </div>
             <div class="result" id="result" role="status" aria-live="polite" hidden></div>
+            <div class="scoreboard" id="scoreboard" hidden></div>
+            <div class="duel-result" id="duel-result" hidden></div>
           </section>
 
           <div class="sidebar" id="settings-panel">
@@ -65,6 +79,18 @@
               <p class="preset-description">Presets guardados en el repositorio. Al cargar uno se aplican sus opciones y su música.</p>
               <div class="preset-list" id="preset-list"></div>
               <button class="small-button save-preset-button" id="save-preset-button" type="button">Guardar mis opciones como preset</button>
+            </section>
+
+            <section class="card teams-card" id="teams-card" aria-labelledby="teams-title" hidden>
+              <div class="panel-heading">
+                <div><span class="section-index">EQUIPOS</span><h2 id="teams-title">Equipos <span class="heading-count" id="team-count">0</span></h2></div>
+              </div>
+              <p class="preset-description">Crea los equipos y asigna cada opción al que le toque. Cada giro suma un punto a su equipo.</p>
+              <div class="team-editor" id="team-editor"></div>
+              <form id="team-form" class="team-form">
+                <input class="text-input" id="team-name" type="text" maxlength="18" placeholder="Nombre del equipo" autocomplete="off" />
+                <button class="small-button" id="team-add" type="submit">+ EQUIPO</button>
+              </form>
             </section>
 
             <section class="card" aria-labelledby="add-title">
@@ -81,6 +107,10 @@
                 <input class="text-input" id="image-url" type="text" inputmode="url" placeholder="https://... o ./imagenes/foto.jpg" autocomplete="off" />
                 <label class="field-label name-label" for="option-name">Nombre <span class="optional">opcional si hay imagen</span></label>
                 <input class="text-input" id="option-name" type="text" maxlength="40" placeholder="Ej. Pizza, película, persona..." autocomplete="off" />
+                <label class="field-label team-field" id="option-team-field" for="option-team" hidden>Equipo <span class="optional">opcional</span></label>
+                <select class="text-input" id="option-team" hidden></select>
+                <label class="field-label number-field" id="option-number-field" for="option-number" hidden>Número <span class="optional">para el 1 vs 1</span></label>
+                <input class="text-input" id="option-number" type="number" min="1" max="999" placeholder="Ej. 42" hidden />
                 <button class="add-button" id="add-button" type="submit">+ AÑADIR OPCIÓN</button>
               </form>
               <p class="form-note">Las imágenes subidas se comprimen y se incluyen en el JSON al exportar.</p>

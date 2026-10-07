@@ -4,6 +4,9 @@ export function newId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+const MODES = ['individual', 'equipos', 'supervivencia', 'duelo'];
+const DUELS = ['list', 'own', 'number'];
+
 function normalizeOptions(options) {
   if (!Array.isArray(options)) return [];
   const ids = new Set();
@@ -11,17 +14,49 @@ function normalizeOptions(options) {
     let id = typeof option.id === 'string' && option.id ? option.id : newId();
     if (ids.has(id)) id = newId();
     ids.add(id);
-    return { id, name: option.name.slice(0, 40), image: option.image };
+    const score = Number(option.score);
+    return {
+      id,
+      name: option.name.slice(0, 40),
+      image: option.image,
+      team: typeof option.team === 'string' && option.team ? option.team : null,
+      score: Number.isFinite(score) ? Math.max(0, Math.min(999, Math.round(score))) : 1 + Math.floor(Math.random() * 99)
+    };
   });
 }
 
+function normalizeTeams(teams) {
+  if (!Array.isArray(teams)) return [];
+  const ids = new Set();
+  return teams.filter((team) => team && typeof team === 'object' && typeof team.name === 'string').slice(0, 12).map((team) => {
+    let id = typeof team.id === 'string' && team.id ? team.id : newId();
+    if (ids.has(id)) id = newId();
+    ids.add(id);
+    return {
+      id,
+      name: team.name.slice(0, 18),
+      color: typeof team.color === 'string' && /^#[0-9a-f]{6}$/i.test(team.color) ? team.color : null
+    };
+  });
+}
+
+export function defaultPrefs() {
+  return { removeDrawn: true, mode: 'individual', duel: 'list', teams: [] };
+}
+
 export function readPrefs() {
+  const base = defaultPrefs();
   try {
     const saved = JSON.parse(localStorage.getItem(PREFS_KEY));
-    if (!saved || typeof saved !== 'object') return { removeDrawn: true };
-    return { removeDrawn: saved.removeDrawn !== false };
+    if (!saved || typeof saved !== 'object') return base;
+    return {
+      removeDrawn: saved.removeDrawn !== false,
+      mode: MODES.includes(saved.mode) ? saved.mode : base.mode,
+      duel: DUELS.includes(saved.duel) ? saved.duel : base.duel,
+      teams: normalizeTeams(saved.teams)
+    };
   } catch {
-    return { removeDrawn: true };
+    return base;
   }
 }
 
@@ -81,19 +116,28 @@ export async function loadPreset(file) {
   if (!preset || !Array.isArray(preset.options) || !preset.options.length) {
     throw new Error('El preset no contiene opciones válidas.');
   }
+  const settings = preset.settings && typeof preset.settings === 'object' ? preset.settings : {};
   return {
     name: typeof preset.name === 'string' && preset.name.trim() ? preset.name.trim().slice(0, 40) : file,
     description: typeof preset.description === 'string' ? preset.description.slice(0, 120) : '',
     options: normalizeOptions(preset.options),
+    teams: normalizeTeams(preset.teams),
+    settings: {
+      removeDrawn: settings.removeDrawn !== false,
+      mode: MODES.includes(settings.mode) ? settings.mode : 'individual',
+      duel: DUELS.includes(settings.duel) ? settings.duel : 'list'
+    },
     music: normalizeMusic(preset.music) ?? { src: null, volume: 45, autoplay: true }
   };
 }
 
-export function buildPreset(name, description, options, music) {
+export function buildPreset(name, description, options, music, prefs) {
   return {
     name: (name || 'Mi preset').slice(0, 40),
     description: (description || '').slice(0, 120),
-    options: options.map(({ id, name: optionName, image }) => ({ id, name: optionName, image })),
+    options: options.map(({ id, name: optionName, image, team, score }) => ({ id, name: optionName, image, team: team ?? null, score })),
+    teams: normalizeTeams(prefs?.teams),
+    settings: { removeDrawn: prefs?.removeDrawn !== false, mode: MODES.includes(prefs?.mode) ? prefs.mode : 'individual', duel: DUELS.includes(prefs?.duel) ? prefs.duel : 'list' },
     music: { src: music.src, volume: music.volume, autoplay: music.autoplay !== false }
   };
 }
