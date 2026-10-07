@@ -1,3 +1,18 @@
-﻿{
-  "presets": []
+{
+  "presets": [
+    {
+      "id": "equipos",
+      "name": "Equipos",
+      "description": "25 minijuegos repartidos entre dos equipos",
+      "file": "equipos.json",
+      "options": 25
+    },
+    {
+      "id": "1-vs-1",
+      "name": "1 Vs 1",
+      "description": "9 minijuegos para resolver duelos",
+      "file": "uno-contra-uno.json",
+      "options": 9
+    }
+  ]
 }

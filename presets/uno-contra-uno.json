@@ -1,0 +1,80 @@
+{
+  "name": "1 Vs 1",
+  "description": "9 minijuegos para resolving duelos",
+  "options": [
+    {
+      "id": "duelo-1",
+      "name": "Búsqueda del tesoro",
+      "image": "",
+      "team": null,
+      "score": 1
+    },
+    {
+      "id": "duelo-2",
+      "name": "Rollo infinito",
+      "image": "",
+      "team": null,
+      "score": 18
+    },
+    {
+      "id": "duelo-3",
+      "name": "Black jack",
+      "image": "",
+      "team": null,
+      "score": 35
+    },
+    {
+      "id": "duelo-4",
+      "name": "Torta de la justicia",
+      "image": "",
+      "team": null,
+      "score": 52
+    },
+    {
+      "id": "duelo-5",
+      "name": "Aeróbicos idénticos",
+      "image": "",
+      "team": null,
+      "score": 69
+    },
+    {
+      "id": "duelo-6",
+      "name": "Gato con guantes",
+      "image": "",
+      "team": null,
+      "score": 86
+    },
+    {
+      "id": "duelo-7",
+      "name": "Leonardo da pichí pichá",
+      "image": "",
+      "team": null,
+      "score": 4
+    },
+    {
+      "id": "duelo-8",
+      "name": "MII a la carta",
+      "image": "",
+      "team": null,
+      "score": 21
+    },
+    {
+      "id": "duelo-9",
+      "name": "Decid patata",
+      "image": "",
+      "team": null,
+      "score": 38
+    }
+  ],
+  "teams": [],
+  "settings": {
+    "removeDrawn": true,
+    "mode": "duelo",
+    "duel": "list"
+  },
+  "music": {
+    "src": "./musica.mp3",
+    "volume": 45,
+    "autoplay": true
+  }
+}

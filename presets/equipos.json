@@ -1,0 +1,203 @@
+{
+  "name": "Equipos",
+  "description": "25 minijuegos repartidos entre dos equipos",
+  "options": [
+    {
+      "id": "equipos-1",
+      "name": "Actor de Hollywood",
+      "image": "",
+      "team": "eq-1",
+      "score": 1
+    },
+    {
+      "id": "equipos-2",
+      "name": "Hundir la flota",
+      "image": "",
+      "team": "eq-2",
+      "score": 18
+    },
+    {
+      "id": "equipos-3",
+      "name": "Carrera a 5 piernas",
+      "image": "",
+      "team": "eq-1",
+      "score": 35
+    },
+    {
+      "id": "equipos-4",
+      "name": "Cronómetro",
+      "image": "",
+      "team": "eq-2",
+      "score": 52
+    },
+    {
+      "id": "equipos-5",
+      "name": "Lucha de tiempo",
+      "image": "",
+      "team": "eq-1",
+      "score": 69
+    },
+    {
+      "id": "equipos-6",
+      "name": "Vías de la suerte",
+      "image": "",
+      "team": "eq-2",
+      "score": 86
+    },
+    {
+      "id": "equipos-7",
+      "name": "Patata caliente",
+      "image": "",
+      "team": "eq-1",
+      "score": 4
+    },
+    {
+      "id": "equipos-8",
+      "name": "Invasión zombie",
+      "image": "",
+      "team": "eq-2",
+      "score": 21
+    },
+    {
+      "id": "equipos-9",
+      "name": "Equilibrio mortal",
+      "image": "",
+      "team": "eq-1",
+      "score": 38
+    },
+    {
+      "id": "equipos-10",
+      "name": "Construcción Irrompible",
+      "image": "",
+      "team": "eq-2",
+      "score": 55
+    },
+    {
+      "id": "equipos-11",
+      "name": "Palabras explosivas",
+      "image": "",
+      "team": "eq-1",
+      "score": 72
+    },
+    {
+      "id": "equipos-12",
+      "name": "Transportista desesperado",
+      "image": "",
+      "team": "eq-2",
+      "score": 89
+    },
+    {
+      "id": "equipos-13",
+      "name": "Del aro al aro",
+      "image": "",
+      "team": "eq-1",
+      "score": 7
+    },
+    {
+      "id": "equipos-14",
+      "name": "Como una pluma",
+      "image": "",
+      "team": "eq-2",
+      "score": 24
+    },
+    {
+      "id": "equipos-15",
+      "name": "Disparo certero",
+      "image": "",
+      "team": "eq-1",
+      "score": 41
+    },
+    {
+      "id": "equipos-16",
+      "name": "La pierna del medio",
+      "image": "",
+      "team": "eq-2",
+      "score": 58
+    },
+    {
+      "id": "equipos-17",
+      "name": "Tragabolas",
+      "image": "",
+      "team": "eq-1",
+      "score": 75
+    },
+    {
+      "id": "equipos-18",
+      "name": "La distancia justa",
+      "image": "",
+      "team": "eq-2",
+      "score": 92
+    },
+    {
+      "id": "equipos-19",
+      "name": "Laberinto mareante",
+      "image": "",
+      "team": "eq-1",
+      "score": 10
+    },
+    {
+      "id": "equipos-20",
+      "name": "Pañuelo Dual",
+      "image": "",
+      "team": "eq-2",
+      "score": 27
+    },
+    {
+      "id": "equipos-21",
+      "name": "Duolingo Express",
+      "image": "",
+      "team": "eq-1",
+      "score": 44
+    },
+    {
+      "id": "equipos-22",
+      "name": "Goles a montones",
+      "image": "",
+      "team": "eq-2",
+      "score": 61
+    },
+    {
+      "id": "equipos-23",
+      "name": "Paso a paso",
+      "image": "",
+      "team": "eq-1",
+      "score": 78
+    },
+    {
+      "id": "equipos-24",
+      "name": "Encuentra al Juez",
+      "image": "",
+      "team": "eq-2",
+      "score": 95
+    },
+    {
+      "id": "equipos-25",
+      "name": "Oído absoluto",
+      "image": "",
+      "team": "eq-1",
+      "score": 13
+    }
+  ],
+  "teams": [
+    {
+      "id": "eq-1",
+      "name": "Equipo 1",
+      "color": "#e6a18a"
+    },
+    {
+      "id": "eq-2",
+      "name": "Equipo 2",
+      "color": "#8da6d8"
+    }
+  ],
+  "settings": {
+    "removeDrawn": true,
+    "mode": "equipos",
+    "duel": "list"
+  },
+  "music": {
+    "src": "./musica.mp3",
+    "volume": 45,
+    "autoplay": true
+  }
+}
