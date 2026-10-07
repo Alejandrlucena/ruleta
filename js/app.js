@@ -1,11 +1,12 @@
 import { Roulette } from './roulette.js';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readLocalState, saveLocalState } from './storage.js';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js';
 import { setupAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
 let state = { options: [], history: [], activePreset: null };
 let published = { version: null, options: [], music: null };
+let prefs = { removeDrawn: true };
 let presets = [];
 let spinning = false;
 let previewUrl = null;
@@ -123,7 +124,19 @@ function render() {
   $('remaining-count').textContent = remaining.length;
   $('spin-button').disabled = spinning || !remaining.length;
   $('spin-button').firstChild.textContent = spinning ? 'GIRANDO... ' : 'GIRAR RULETA ';
-  $('spin-hint').textContent = spinning ? 'La suerte está echada...' : remaining.length ? 'Cada resultado se retira de las siguientes tiradas.' : state.options.length ? 'Ronda completada. Reinicia para volver a jugar.' : 'Personaliza tus opciones para empezar.';
+  $('remove-drawn').disabled = spinning;
+  $('remove-drawn-hint').textContent = prefs.removeDrawn
+    ? 'Cada opción sale una sola vez por ronda'
+    : 'Las opciones pueden volver a salir';
+  $('spin-hint').textContent = spinning
+    ? 'La suerte está echada...'
+    : !remaining.length && state.options.length
+      ? 'Ronda completada. Reinicia para volver a jugar.'
+      : !state.options.length
+        ? 'Personaliza tus opciones para empezar.'
+        : prefs.removeDrawn
+          ? 'Cada resultado se retira de las siguientes tiradas.'
+          : 'Puedes volver a salir la misma opción.';
   $('add-button').disabled = spinning;
   $('round-actions').hidden = !state.history.length;
   $('reset-button').hidden = !state.history.length;
@@ -141,17 +154,15 @@ function render() {
 
 function update(next) {
   state = next;
-  if (!saveLocalState(state, published)) notify('No se ha podido guardar en el navegador. Los cambios podrían perderse al recargar.');
   render();
 }
 
 function renderPresets() {
+  const card = $('preset-card');
+  card.hidden = !presets.length;
   const list = $('preset-list');
   list.replaceChildren();
-  if (!presets.length) {
-    list.append(emptyMessage('Todavía no hay presets en el repositorio.'));
-    return;
-  }
+  if (!presets.length) return;
   presets.forEach((preset) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -258,9 +269,7 @@ $('option-form').addEventListener('submit', async (event) => {
       image = url;
     }
     const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image };
-    const next = { ...state, options: [...state.options, option], activePreset: null };
-    if (!saveLocalState(next, published)) throw new Error('No queda espacio en el navegador. Prueba a usar URLs de imágenes o elimina algunas opciones.');
-    state = next;
+    state = { ...state, options: [...state.options, option], activePreset: null };
     $('option-form').reset();
     clearPreview();
     $('upload-text').querySelector('strong').textContent = 'Elige una imagen';
@@ -272,6 +281,18 @@ $('option-form').addEventListener('submit', async (event) => {
     notify(error.message || 'No se ha podido añadir la opción.');
   } finally {
     $('add-button').disabled = false;
+  }
+});
+
+$('remove-drawn').addEventListener('change', (event) => {
+  prefs.removeDrawn = event.target.checked;
+  savePrefs(prefs);
+  if (!prefs.removeDrawn && state.history.length) {
+    $('result').hidden = true;
+    update({ ...state, history: [] });
+    notify('Las opciones vuelven a poder repetirse.');
+  } else {
+    render();
   }
 });
 
@@ -297,7 +318,11 @@ $('spin-button').addEventListener('click', async () => {
   result.hidden = false;
   await new Promise((resolve) => setTimeout(resolve, 850));
   spinning = false;
-  update({ ...state, history: [...state.history, winner.id] });
+  if (prefs.removeDrawn) {
+    update({ ...state, history: [...state.history, winner.id] });
+  } else {
+    render();
+  }
 });
 
 $('undo-button').addEventListener('click', () => {
@@ -319,10 +344,10 @@ $('reset-button').addEventListener('click', () => {
 
 $('restore-button').addEventListener('click', () => {
   if (spinning) return;
-  if (!window.confirm('¿Descartar tus cambios locales y volver a las opciones iniciales publicadas?')) return;
+  if (!window.confirm('¿Volver a las opciones publicadas en config.json?')) return;
   $('result').hidden = true;
   update({ options: [...published.options], history: [], activePreset: null });
-  notify('Configuración inicial restaurada.');
+  notify('Vueltas a las opciones publicadas.');
 });
 
 $('export-button').addEventListener('click', () => {
@@ -335,10 +360,8 @@ $('import-file').addEventListener('change', async (event) => {
   if (!file || spinning) return;
   try {
     const options = await importOptions(file);
-    if (spinning || !window.confirm('¿Sustituir las opciones actuales por las del archivo? El historial de esta ronda se borrará.')) return;
-    const next = { options, history: [], activePreset: null };
-    if (!saveLocalState(next, published)) throw new Error('El archivo es demasiado grande para guardarlo en este navegador.');
-    state = next;
+    if (spinning || !window.confirm('¿Sustituir las opciones actuales por las del archivo?')) return;
+    state = { options, history: [], activePreset: null };
     $('result').hidden = true;
     render();
     notify(`${options.length} opciones importadas.`);
@@ -349,6 +372,8 @@ $('import-file').addEventListener('change', async (event) => {
 
 published = await loadPublishedConfig();
 const audioControls = setupAudio(notify, published.music);
-state = readLocalState(published);
+prefs = readPrefs();
+$('remove-drawn').checked = prefs.removeDrawn;
+state = { options: [...published.options], history: [], activePreset: null };
 presets = await loadPresetIndex();
 render();

@@ -43,6 +43,11 @@
             <div class="wheel-bottom">
               <button class="spin-button" id="spin-button" type="button" disabled>GIRAR RULETA <span aria-hidden="true">↗</span></button>
               <p class="spin-hint" id="spin-hint">Preparando la ruleta...</p>
+              <label class="rule-switch">
+                <input type="checkbox" id="remove-drawn" checked />
+                <span class="switch" aria-hidden="true"></span>
+                <span class="rule-switch-text">Quitar las opciones que salen<small id="remove-drawn-hint">Cada opción sale una sola vez por ronda</small></span>
+              </label>
               <div class="round-actions" id="round-actions" hidden>
                 <button class="round-reset" id="undo-button" type="button" hidden>DESHACER ÚLTIMA TIRADA</button>
                 <button class="round-reset" id="reset-button" type="button" hidden>REINICIAR RONDA</button>
@@ -52,7 +57,7 @@
           </section>
 
           <div class="sidebar" id="settings-panel">
-            <section class="card preset-card" aria-labelledby="preset-title">
+            <section class="card preset-card" id="preset-card" aria-labelledby="preset-title" hidden>
               <div class="panel-heading">
                 <div><span class="section-index">PRECARGADOS</span><h2 id="preset-title">Presets</h2></div>
                 <span class="music-decoration" aria-hidden="true">✦</span>
@@ -104,10 +109,14 @@
             <p class="music-description" id="music-description">La música comienza al girar. Puedes pausarla o ajustar el volumen cuando quieras.</p>
             <div class="music-controls">
               <button class="music-play" id="music-play" type="button" aria-label="Reproducir música">▶</button>
+              <button class="music-mute" id="music-mute" type="button" aria-label="Silenciar" aria-pressed="false" hidden>🔊</button>
               <label class="music-file-button" for="music-file">Elegir MP3</label>
               <input id="music-file" type="file" accept="audio/mpeg,.mp3" />
-              <label class="volume-label" for="music-volume">Volumen</label>
-              <input id="music-volume" type="range" min="0" max="100" value="45" aria-label="Volumen" />
+              <div class="volume-box">
+                <label class="volume-label" for="music-volume">Volumen</label>
+                <input id="music-volume" type="range" min="0" max="100" step="1" value="45" aria-label="Volumen" />
+                <output class="volume-value" id="volume-value" for="music-volume">45</output>
+              </div>
             </div>
             <span class="music-source" id="music-source">Música de fondo · MP3</span>
           </section>

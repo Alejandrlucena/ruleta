@@ -1,6 +1,4 @@
-const STORAGE_KEY = 'la-ruleta-state-v1';
-const PROGRESS_KEY = 'la-ruleta-progress-v1';
-const CUSTOM_KEY = 'la-ruleta-custom-v1';
+const PREFS_KEY = 'la-ruleta-prefs-v1';
 
 export function newId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -17,18 +15,20 @@ function normalizeOptions(options) {
   });
 }
 
-export function readState() {
+export function readPrefs() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const saved = JSON.parse(raw);
-    const options = normalizeOptions(saved.options);
-    const validIds = new Set(options.map((option) => option.id));
-    const history = Array.isArray(saved.history) ? saved.history.filter((id, index, all) => validIds.has(id) && all.indexOf(id) === index) : [];
-    return { options, history };
+    const saved = JSON.parse(localStorage.getItem(PREFS_KEY));
+    if (!saved || typeof saved !== 'object') return { removeDrawn: true };
+    return { removeDrawn: saved.removeDrawn !== false };
   } catch {
-    return null;
+    return { removeDrawn: true };
   }
+}
+
+export function savePrefs(prefs) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {}
 }
 
 export async function loadPublishedConfig() {
@@ -96,51 +96,6 @@ export function buildPreset(name, description, options, music) {
     options: options.map(({ id, name: optionName, image }) => ({ id, name: optionName, image })),
     music: { src: music.src, volume: music.volume, autoplay: music.autoplay !== false }
   };
-}
-
-export function readLocalState(published) {
-  let saved;
-  try { saved = JSON.parse(localStorage.getItem(CUSTOM_KEY)); } catch {}
-  const baseIds = new Set(published.options.map((option) => option.id));
-  if (!saved || !Array.isArray(saved.added)) {
-    const legacy = readState();
-    const added = legacy?.options.filter((option) => !baseIds.has(option.id)) ?? [];
-    const options = [...published.options, ...added];
-    const ids = new Set(options.map((option) => option.id));
-    let previousProgress = [];
-    try {
-      const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY));
-      if (progress?.version === published.version && Array.isArray(progress.history)) previousProgress = progress.history;
-    } catch {}
-    const history = (previousProgress.length ? previousProgress : legacy?.history ?? []).filter((id, index, all) => ids.has(id) && all.indexOf(id) === index);
-    return { options, history, activePreset: legacy?.activePreset ?? null };
-  }
-  const removed = new Set(Array.isArray(saved.removedIds) ? saved.removedIds : []);
-  const overrides = new Map(normalizeOptions(saved.overrides).map((option) => [option.id, option]));
-  const options = published.options.filter((option) => !removed.has(option.id)).map((option) => overrides.get(option.id) ?? option);
-  options.push(...normalizeOptions(saved.added).filter((option) => !baseIds.has(option.id)));
-  const ids = new Set(options.map((option) => option.id));
-  const history = saved.version === published.version && Array.isArray(saved.history) ? saved.history.filter((id, index, all) => ids.has(id) && all.indexOf(id) === index) : [];
-  return { options, history, activePreset: typeof saved.activePreset === 'string' ? saved.activePreset : null };
-}
-
-export function saveLocalState(state, published) {
-  const baseIds = new Set(published.options.map((option) => option.id));
-  const current = new Map(state.options.map((option) => [option.id, option]));
-  const payload = {
-    version: published.version,
-    activePreset: state.activePreset ?? null,
-    added: state.options.filter((option) => !baseIds.has(option.id)),
-    removedIds: published.options.filter((option) => !current.has(option.id)).map((option) => option.id),
-    overrides: published.options.filter((option) => current.has(option.id) && (current.get(option.id).name !== option.name || current.get(option.id).image !== option.image)).map((option) => current.get(option.id)),
-    history: state.history
-  };
-  try {
-    localStorage.setItem(CUSTOM_KEY, JSON.stringify(payload));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function importOptions(file) {

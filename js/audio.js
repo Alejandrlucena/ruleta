@@ -4,12 +4,16 @@ const DEFAULT_SONG = './musica.mp3';
 export function setupAudio(notify, initialMusic = null) {
   const audio = new Audio();
   const playButton = document.getElementById('music-play');
+  const muteButton = document.getElementById('music-mute');
   const fileInput = document.getElementById('music-file');
   const volumeInput = document.getElementById('music-volume');
+  const volumeValue = document.getElementById('volume-value');
   const source = document.getElementById('music-source');
   let localUrl = null;
   let pausedByUser = false;
   let pendingUnlock = false;
+  let mutedByUser = false;
+  let lastAudibleVolume = null;
   let trackSrc = initialMusic?.src || DEFAULT_SONG;
   let trackLabel = null;
   let autoplayWanted = initialMusic ? initialMusic.autoplay !== false : true;
@@ -20,7 +24,25 @@ export function setupAudio(notify, initialMusic = null) {
     const stored = Number(raw);
     if (raw !== null && Number.isFinite(stored) && stored >= 0 && stored <= 100) volumeInput.value = stored;
   } catch {}
-  audio.volume = Number(volumeInput.value) / 100;
+  if (initialMusic && Number.isFinite(initialMusic.volume)) volumeInput.value = initialMusic.volume;
+
+  function syncVolumeUi() {
+    const value = Number(volumeInput.value);
+    volumeValue.textContent = String(value);
+    const silent = value === 0 || mutedByUser;
+    muteButton.hidden = false;
+    muteButton.setAttribute('aria-pressed', String(mutedByUser));
+    muteButton.setAttribute('aria-label', mutedByUser ? 'Quitar silencio' : 'Silenciar');
+    muteButton.textContent = mutedByUser ? '🔇' : '🔊';
+    muteButton.classList.toggle('is-silent', silent);
+  }
+
+  function applyVolume() {
+    audio.volume = Number(volumeInput.value) / 100;
+    syncVolumeUi();
+  }
+
+  applyVolume();
 
   function syncButton() {
     const playing = !audio.paused;
@@ -28,13 +50,10 @@ export function setupAudio(notify, initialMusic = null) {
     playButton.setAttribute('aria-label', playing ? 'Pausar música' : 'Reproducir música');
   }
 
-  function applyVolume() {
-    audio.volume = Number(volumeInput.value) / 100;
-  }
-
   async function play() {
     if (!audio.src) audio.src = trackSrc;
-    audio.muted = false;
+    audio.muted = mutedByUser;
+    applyVolume();
     try {
       await audio.play();
       source.textContent = trackLabel || 'Música de fondo';
@@ -59,10 +78,10 @@ export function setupAudio(notify, initialMusic = null) {
       await audio.play();
       started = true;
     } catch {
-      audio.muted = false;
+      audio.muted = mutedByUser;
       return false;
     }
-    audio.muted = false;
+    audio.muted = mutedByUser;
     if (!started) return false;
     source.textContent = trackLabel || 'Música de fondo';
     return true;
@@ -96,6 +115,16 @@ export function setupAudio(notify, initialMusic = null) {
     void play();
   });
 
+  muteButton.addEventListener('click', () => {
+    mutedByUser = !mutedByUser;
+    if (!mutedByUser && Number(volumeInput.value) === 0 && lastAudibleVolume) volumeInput.value = lastAudibleVolume;
+    if (mutedByUser && Number(volumeInput.value) > 0) lastAudibleVolume = volumeInput.value;
+    try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
+    applyVolume();
+    audio.muted = mutedByUser;
+    source.textContent = mutedByUser ? 'Música silenciada' : (trackLabel || 'Música de fondo');
+  });
+
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     event.target.value = '';
@@ -115,12 +144,21 @@ export function setupAudio(notify, initialMusic = null) {
     trackSrc = localUrl;
     trackLabel = `${file.name} · solo en esta sesión`;
     audio.src = trackSrc;
-    audio.muted = false;
+    audio.muted = mutedByUser;
     source.textContent = trackLabel;
     if (resume) void play();
   });
 
   volumeInput.addEventListener('input', () => {
+    const value = Number(volumeInput.value);
+    if (value > 0) {
+      lastAudibleVolume = value;
+      if (mutedByUser) {
+        mutedByUser = false;
+        audio.muted = false;
+        source.textContent = trackLabel || 'Música de fondo';
+      }
+    }
     applyVolume();
     try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
   });
@@ -136,7 +174,7 @@ export function setupAudio(notify, initialMusic = null) {
 
   return {
     getTrack() {
-      return { src: localUrl ? null : trackSrc, label: trackLabel, volume: Number(volumeInput.value) };
+      return { src: localUrl ? null : trackSrc, label: trackLabel, volume: Number(volumeInput.value), muted: mutedByUser };
     },
     async setTrack(music, label) {
       if (!music?.src) return;
@@ -146,13 +184,14 @@ export function setupAudio(notify, initialMusic = null) {
         volumeInput.value = music.volume;
         try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
       }
+      if (Number(volumeInput.value) > 0) lastAudibleVolume = Number(volumeInput.value);
       applyVolume();
       pausedByUser = false;
       pendingUnlock = false;
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
-      audio.muted = false;
+      audio.muted = mutedByUser;
       audio.src = trackSrc;
       source.textContent = trackLabel || 'Música de fondo';
       if (music.autoplay !== false) await play();
