@@ -1,6 +1,6 @@
-﻿import { Roulette } from './roulette.js?v=3';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=3';
-import { setupAudio } from './audio.js?v=3';
+﻿import { Roulette } from './roulette.js?v=4';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=4';
+import { setupAudio } from './audio.js?v=4';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
