@@ -1,6 +1,7 @@
 ﻿import { Roulette } from './roulette.js?v=10';
 import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=10';
 import { setupAudio } from './audio.js?v=10';
+import { cerrarSesion, enlaceToken, guardarToken, publicarPreset, token, verificarToken } from './github.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
@@ -250,19 +251,6 @@ function renderScoreboard() {
   });
 }
 
-function renderDuelResult() {
-  const box = $('duel-result');
-  box.replaceChildren();
-  const duel = state.duel;
-  box.hidden = prefs.mode !== 'duelo' || !duel;
-  if (box.hidden) return;
-  const label = document.createElement('small');
-  label.textContent = 'RESULTADO';
-  const title = document.createElement('strong');
-  title.textContent = duel.winner;
-  box.append(label, title);
-}
-
 function renderTeamsEditor() {
   $('teams-card').hidden = !needsTeams();
   const editor = $('team-editor');
@@ -367,7 +355,7 @@ function render() {
   } else if (prefs.mode === 'duelo') {
     pista = prefs.duel === 'own'
       ? 'Turnos alternos: cada jugador tira con sus opciones.'
-      : 'Dos turnos seguidos sobre la misma lista para resolver el duelo.';
+      : 'Turnos alternos sobre la misma lista: una tirada por pulsación.';
   } else if (prefs.removeDrawn) pista = 'Cada resultado se retira de las siguientes tiradas.';
   else pista = 'Puedes volver a salir la misma opción.';
   $('spin-hint').textContent = pista;
@@ -390,7 +378,6 @@ function render() {
   renderPresets();
   renderTeamsEditor();
   renderScoreboard();
-  renderDuelResult();
 }
 
 function splitByTeam() {
@@ -483,7 +470,6 @@ async function applyPreset(preset) {
   try {
     const data = await loadPreset(preset.file);
     $('result').hidden = true;
-    $('duel-result').hidden = true;
     prefs = { ...prefs, ...data.settings, teams: data.teams.length ? data.teams : prefs.teams };
     savePrefs(prefs);
     state = { options: data.options, history: [], scores: {}, duel: null, turn: 'a', activePreset: preset.id };
@@ -507,8 +493,106 @@ $('save-preset-button').addEventListener('click', () => {
   if (!track.src) {
     notify('Esta sesión usa un MP3 local, que no se puede guardar. Usa una canción del repositorio para incluirla en el preset.');
   }
-  downloadJson(`${name.trim().replace(/[^\w-]+/g, '-').slice(0, 30) || 'preset'}.json`, buildPreset(name.trim(), description.trim(), state.options, { src: track.src, volume: track.volume, autoplay: true }, prefs));
-  notify('Preset descargado. Ejecútalo en guardar-preset.ps1 para publicarlo en el repositorio.');
+  const slug = name.trim().replace(/[^\w-]+/g, '-').slice(0, 30) || 'preset';
+  const datos = buildPreset(name.trim(), description.trim(), state.options, { src: track.src, volume: track.volume, autoplay: true }, prefs);
+  downloadJson(`${slug}.json`, datos);
+  pendingPreset = datos;
+  notify('Preset descargado. Ya puedes publicarlo aquí con "Publicar en GitHub" o con guardar-preset.ps1 en el ordenador.');
+});
+
+// ---- Publicacion en GitHub (funciona tambien desde el movil) ----
+// GitHub no deja hacer OAuth desde el navegador, asi que se usa un token
+// personal que el usuario pega una vez. Vive solo en sessionStorage.
+let pendingPreset = null;
+const dialogo = $('github-dialog');
+
+function estadoGithub(texto) {
+  const caja = $('github-status');
+  caja.hidden = !texto;
+  caja.textContent = texto || '';
+}
+
+function abrirDialogo() {
+  $('gh-desconectar').hidden = !token();
+  $('gh-conectar').textContent = token() ? 'Publicar con este token' : 'Conectar y publicar';
+  if (typeof dialogo.showModal === 'function') dialogo.showModal();
+  else dialogo.setAttribute('open', '');
+}
+
+function cerrarDialogo() {
+  if (typeof dialogo.close === 'function') dialogo.close();
+  else dialogo.removeAttribute('open');
+  $('gh-token').value = '';
+}
+
+$('gh-close').addEventListener('click', cerrarDialogo);
+$('gh-open-token').addEventListener('click', () => window.open(enlaceToken(), '_blank', 'noopener'));
+$('gh-desconectar').addEventListener('click', () => {
+  cerrarSesion();
+  estadoGithub('Token borrado de esta pestaña.');
+  abrirDialogo();
+  $('gh-desconectar').hidden = true;
+  $('gh-conectar').textContent = 'Conectar y publicar';
+});
+
+async function publicarAhora(preset) {
+  $('publish-button').disabled = true;
+  try {
+    const cuenta = await verificarToken();
+    estadoGithub(`Conectado como ${cuenta.usuario}. Subiendo...`);
+    const resultado = await publicarPreset(preset, (mensaje) => estadoGithub(mensaje));
+    estadoGithub(`Publicado en ${resultado.ruta}. La web lo muestra en unos segundos.`);
+    notify(`Preset publicado en ${cuenta.repo} como ${cuenta.usuario}.`);
+    cerrarDialogo();
+    presets = await loadPresetIndex();
+    render();
+  } catch (error) {
+    estadoGithub(error.message || 'No se pudo publicar el preset.');
+    notify(error.message || 'No se pudo publicar el preset.');
+    if (/401|403/.test(error.message)) cerrarSesion();
+  } finally {
+    $('publish-button').disabled = false;
+  }
+}
+
+$('gh-conectar').addEventListener('click', async () => {
+  const valor = $('gh-token').value.trim();
+  if (!valor && !token()) {
+    estadoGithub('Pega primero tu token personal de GitHub.');
+    return;
+  }
+  if (valor) guardarToken(valor);
+  const boton = $('gh-conectar');
+  boton.disabled = true;
+  try {
+    const cuenta = await verificarToken();
+    estadoGithub(`Correcto: ${cuenta.usuario} puede escribir en ${cuenta.repo}.`);
+    if (pendingPreset) {
+      boton.disabled = false;
+      await publicarAhora(pendingPreset);
+    } else {
+      cerrarDialogo();
+      notify(`Conectado como ${cuenta.usuario}.`);
+    }
+  } catch (error) {
+    estadoGithub(error.message || 'El token no es valido.');
+    if (/401|403/.test(error.message)) cerrarSesion();
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+$('publish-button').addEventListener('click', async () => {
+  if (spinning || !state.options.length) return;
+  if (!pendingPreset) {
+    notify('Primero pulsa "Guardar mis opciones como preset" para preparar lo que quieres publicar.');
+    return;
+  }
+  if (!token()) {
+    abrirDialogo();
+    return;
+  }
+  await publicarAhora(pendingPreset);
 });
 
 function clearPreview() {
@@ -600,7 +684,6 @@ document.querySelectorAll('.mode-button').forEach((button) => {
     prefs.mode = button.dataset.mode;
     savePrefs(prefs);
     $('result').hidden = true;
-    $('duel-result').hidden = true;
     state = { ...state, history: [], scores: {}, duel: null, turn: 'a' };
     render();
     notify(`Modo ${button.textContent.toLowerCase()}.`);
@@ -613,7 +696,6 @@ document.querySelectorAll('.duel-button').forEach((button) => {
     prefs.duel = button.dataset.duel;
     savePrefs(prefs);
     $('result').hidden = true;
-    $('duel-result').hidden = true;
     state = { ...state, history: [], scores: {}, duel: null, turn: 'a' };
     render();
   });
@@ -667,55 +749,38 @@ function showResult(winner) {
   result.hidden = false;
 }
 
+// Lista comun: una sola tirada por pulsacion, el turno pasa al rival.
+// Antes se hacian dos tiradas seguidas "para igualar" y no tenia sentido.
 async function spinDuel() {
-  const pool = duelPool();
+  const pool = remainingOptions();
   if (!pool.length) {
     notify('No hay opciones para tirar. Añade opciones al duelo.');
     return;
   }
   spinning = true;
   $('result').hidden = true;
-  $('duel-result').hidden = true;
   render();
 
-  const nombrePrimero = nombreTurno();
-  const firstIndex = Math.floor(Math.random() * pool.length);
-  const first = pool[firstIndex];
-  await wheel.spin(firstIndex);
-  showResult(first);
+  const turno = turnoActual();
+  const nombre = nombreTurno();
+  const index = Math.floor(Math.random() * pool.length);
+  const winner = pool[index];
+  await wheel.spin(index);
+  showResult(winner);
 
-  // La segunda tirada es del rival: se cambia el turno para que el aviso lo diga.
-  const nombreSegundo = teams()[turnoActual() === 'a' ? 1 : 0]?.name ?? 'el rival';
-  state = { ...state, turn: turnoActual() === 'a' ? 'b' : 'a' };
-  render();
-
-  let secondPool = pool;
-  if (pool.length > 1) {
-    secondPool = pool.filter((option) => option.id !== first.id);
-  }
-  const secondIndex = Math.floor(Math.random() * secondPool.length);
-  const second = secondPool[secondIndex];
-  await wheel.spin(secondIndex);
-  showResult(second);
-
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 850));
   const scores = { ...state.scores };
-  const bump = (option) => {
-    if (!option?.team) return;
-    scores[option.team] = (scores[option.team] ?? 0) + 1;
-  };
-  bump(first);
-  bump(second);
-  const winner = `${nombrePrimero}: ${first.name}  ·  ${nombreSegundo}: ${second.name}`;
-
-  const history = [...state.history, first.id, second.id];
-  state = { ...state, history, scores, duel: { winner, a: first.name, b: second.name } };
+  const idEquipo = teams()[turno === 'a' ? 0 : 1]?.id;
+  if (idEquipo) scores[idEquipo] = (scores[idEquipo] ?? 0) + 1;
+  const remove = prefs.removeDrawn;
   spinning = false;
-  update(state);
-}
-
-function duelPool() {
-  return remainingOptions();
+  update({
+    ...state,
+    history: remove ? [...state.history, winner.id] : state.history,
+    scores,
+    turn: turno === 'a' ? 'b' : 'a',
+    duel: { winner: `${nombre}: ${winner.name}`, a: nombre, b: winner.name }
+  });
 }
 
 async function spinOwnWheels() {
@@ -741,7 +806,6 @@ async function spinOwnWheels() {
 
   spinning = true;
   $('result').hidden = true;
-  $('duel-result').hidden = true;
   render();
 
   const index = Math.floor(Math.random() * opciones.length);

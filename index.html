@@ -7,8 +7,8 @@
     <meta name="description" content="Crea una ruleta con tus imágenes y gira sin repetir resultados." />
     <title>La Ruleta — El azar decide</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="stylesheet" href="./css/style.css?v=10" />
-    <script type="module" src="./js/app.js?v=10"></script>
+    <link rel="stylesheet" href="./css/style.css?v=11" />
+    <script type="module" src="./js/app.js?v=11"></script>
   </head>
   <body>
     <div class="page-glow" aria-hidden="true"></div>
@@ -71,7 +71,6 @@
             </div>
             <div class="result" id="result" role="status" aria-live="polite" hidden></div>
             <div class="scoreboard" id="scoreboard" hidden></div>
-            <div class="duel-result" id="duel-result" hidden></div>
           </section>
 
           <div class="sidebar" id="settings-panel">
@@ -83,7 +82,11 @@
               <div class="card-body" id="preset-body">
                 <p class="preset-description">Presets guardados en el repositorio. Al cargar uno se aplican sus opciones y su música.</p>
                 <div class="preset-list" id="preset-list"></div>
-                <button class="small-button save-preset-button" id="save-preset-button" type="button">Guardar mis opciones como preset</button>
+                <div class="card-actions">
+                  <button class="small-button" id="save-preset-button" type="button">Guardar mis opciones como preset</button>
+                  <button class="small-button" id="publish-button" type="button">Publicar en GitHub</button>
+                </div>
+                <p class="form-note" id="github-status" hidden></p>
               </div>
             </section>
 
@@ -158,10 +161,30 @@
             <span class="music-source" id="music-source">Música de fondo · MP3</span>
           </section>
         </div>
-        <p class="page-note">Los cambios desde esta web se guardan solo en este navegador. Los presets viven en la carpeta <code>presets/</code> del repositorio: para publicar uno, guárdalo desde aquí y ejecutes <code>guardar-preset.ps1</code>, que lo copia, actualiza el índice y lo sube. La música se indica en <code>config.json</code> o en el propio preset y el MP3 debe estar en la carpeta <code>musica/</code>.</p>
+        <p class="page-note">Las opciones que añades aquí se guardan solo en este navegador. Los presets viven en la carpeta <code>presets/</code> del repositorio y puedes publicarlos desde el móvil con <strong>Publicar en GitHub</strong>, que pide un token personal con permiso de escritura solo en ese repositorio y lo guarda únicamente en esa pestaña. También se puede publicar desde el ordenador con <code>guardar-preset.ps1</code>. La música se indica en <code>config.json</code> o en el propio preset y el MP3 debe estar en la carpeta <code>musica/</code>.</p>
       </main>
       <footer>HECHO PARA QUE CADA GIRO CUENTE <span aria-hidden="true">✳</span></footer>
     </div>
     <div class="toast" id="toast" role="alert" hidden></div>
+
+    <dialog id="github-dialog" class="gh-dialog">
+      <form method="dialog" class="gh-dialog-inner">
+        <h2 id="gh-title">Publicar en GitHub</h2>
+        <p class="gh-text" id="gh-text">Para publicar desde el móvil hace falta un token personal. Se crea una vez y solo puede escribir en los presets de este repositorio.</p>
+        <ol class="gh-steps">
+          <li>Abre <a id="gh-token-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
+          <li>Nombre: <em>Ruleta</em>. Repositorio: solo <em>Alejandrlucena/ruleta</em>.</li>
+          <li>Permisos: <em>Contents: Read and write</em>. Lo demas en <em>No access</em>.</li>
+          <li>Genera el token y pegalo abajo. Se guarda solo en esta pestana.</li>
+        </ol>
+        <input class="text-input" id="gh-token" type="password" placeholder="github_pat_11AA..." autocomplete="off" spellcheck="false" />
+        <div class="gh-actions">
+          <button class="small-button" id="gh-open-token" type="button">Abrir ajustes de GitHub</button>
+          <button class="small-button" id="gh-desconectar" type="button" hidden>Desconectar</button>
+          <button class="small-button" id="gh-conectar" type="button">Conectar y publicar</button>
+          <button class="small-button" id="gh-close" type="button">Cerrar</button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>

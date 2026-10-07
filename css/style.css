@@ -79,9 +79,6 @@ h2 { margin-top: 7px; font-size: 23px; font-weight: 700; letter-spacing: -.055em
 .score-hint { color: #8f96ad; font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 2px; }
 .score-alive { color: #939ab1; font-size: 10px; }
 .score-turns { min-width: 26px; text-align: right; color: #d7fa83; font-weight: 800; font-variant-numeric: tabular-nums; }
-.duel-result { margin: 18px auto 0; padding: 13px; max-width: 360px; border: 1px solid #d7fa836e; border-radius: 10px; background: #d7fa8314; text-align: center; }
-.duel-result small { display: block; margin-bottom: 4px; color: #d7fa83; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
-.duel-result strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
 .teams-card .panel-heading { margin-bottom: 14px; }
 .team-editor { display: grid; gap: 6px; margin-bottom: 12px; }.team-row { display: flex; align-items: center; gap: 9px; }
 .team-name-input { flex: 1; min-width: 0; padding: 9px 11px; border: 1px solid #454a62; border-radius: 7px; background: #272b42; color: #f5f2ed; outline: 0; font-size: 12px; }
@@ -201,6 +198,17 @@ code { font: 11px 'Space Grotesk', monospace; color: #d7fa83; }
 footer { display: flex; justify-content: space-between; border-top: 1px solid #ffffff1f; padding: 25px 0 35px; color: #737d99; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
 footer span { color: #d7fa83; font-size: 16px; }
 .toast { position: fixed; z-index: 10; bottom: 26px; left: 50%; transform: translateX(-50%); max-width: min(480px, calc(100% - 36px)); padding: 12px 18px; border-radius: 8px; background: #f0f0ea; color: #1b1e34; font-size: 12px; font-weight: 700; text-align: center; box-shadow: 0 10px 40px #0006; }
+.gh-dialog { width: min(480px, calc(100% - 32px)); padding: 0; border: 1px solid #ffffff26; border-radius: 14px; background: #1b1e34; color: #f5f2ed; box-shadow: 0 24px 70px #000a; }
+.gh-dialog::backdrop { background: #06091ccc; }
+.gh-dialog-inner { padding: 24px; display: grid; gap: 14px; }
+.gh-dialog h2 { margin: 0; font-size: 19px; letter-spacing: -.04em; }
+.gh-text { color: #a9afc4; font-size: 12px; line-height: 1.6; }
+.gh-text a { color: #d7fa83; }
+.gh-code { padding: 12px; border: 1px dashed #d7fa83; border-radius: 9px; background: #d7fa8314; color: #d7fa83; font-family: 'Space Grotesk', monospace; font-size: 22px; font-weight: 700; letter-spacing: .12em; text-align: center; }
+.gh-steps { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: #a9afc4; font-size: 12px; line-height: 1.55; }
+.gh-steps a { color: #d7fa83; overflow-wrap: anywhere; }
+.gh-steps em { color: #f5f2ed; font-style: normal; font-weight: 700; }
+.gh-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 
 @media (max-width: 1000px) {
   .site-wrap { padding: 0 28px; }
