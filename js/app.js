@@ -1,12 +1,10 @@
-import { Roulette } from './roulette.js';
+﻿import { Roulette } from './roulette.js';
 import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js';
 import { setupAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
-const wheelA = new Roulette($('wheel-a'));
-const wheelB = new Roulette($('wheel-b'));
-let state = { options: [], history: [], activePreset: null, scores: {}, duel: null };
+let state = { options: [], history: [], activePreset: null, scores: {}, duel: null, turn: 'a' };
 let published = { version: null, options: [], music: null };
 let prefs = { removeDrawn: true, mode: 'individual', duel: 'list', teams: [] };
 let presets = [];
@@ -314,7 +312,7 @@ function render() {
         : prefs.mode === 'duelo'
           ? prefs.duel === 'own'
             ? (splitByTeam().a.length && splitByTeam().b.length
-                ? 'Cada ruleta gira con las opciones de su jugador.'
+                ? 'Turnos alternos: cada jugador tira con sus opciones.'
                 : 'Asigna opciones a los dos jugadores en el panel de equipos.')
             : 'Dos tiradas seguidas para resolver el duelo.'
               : prefs.removeDrawn
@@ -352,25 +350,28 @@ function splitByTeam() {
   };
 }
 
+function turnoActual() {
+  return state.turn === 'b' ? 'b' : 'a';
+}
+
+function nombreTurno() {
+  const lista = teams();
+  return lista[turnoActual() === 'a' ? 0 : 1]?.name ?? (turnoActual() === 'a' ? 'Jugador 1' : 'Jugador 2');
+}
+
 function renderWheels() {
-  const duo = prefs.mode === 'duelo' && prefs.duel === 'own';
-  $('wheel-duo').hidden = !duo;
-  $('wheel-single').hidden = duo;
-  if (!duo) {
+  const porTurno = prefs.mode === 'duelo' && prefs.duel === 'own';
+  const banner = $('turn-banner');
+  banner.hidden = !porTurno;
+  if (!porTurno) {
     wheel.setOptions(remainingOptions());
     return;
   }
   const { a, b } = splitByTeam();
-  $('wheel-caption-a').textContent = teams()[0]?.name ?? 'Jugador 1';
-  $('wheel-caption-b').textContent = teams()[1]?.name ?? 'Jugador 2';
-  $('wheel-caption-a').style.color = colorOf(teams()[0]?.id);
-  $('wheel-caption-b').style.color = colorOf(teams()[1]?.id);
-  wheelA.setOptions(a);
-  wheelB.setOptions(b);
-  requestAnimationFrame(() => {
-    wheelA.resize();
-    wheelB.resize();
-  });
+  const turno = turnoActual();
+  $('turn-name').textContent = nombreTurno();
+  $('turn-banner').querySelector('.turn-dot').style.background = colorOf(turno === 'a' ? teams()[0]?.id : teams()[1]?.id);
+  wheel.setOptions(turno === 'a' ? a : b);
 }
 
 function update(next) {
@@ -416,7 +417,7 @@ async function applyPreset(preset) {
     $('duel-result').hidden = true;
     prefs = { ...prefs, ...data.settings, teams: data.teams.length ? data.teams : prefs.teams };
     savePrefs(prefs);
-    state = { options: data.options, history: [], scores: {}, duel: null, activePreset: preset.id };
+    state = { options: data.options, history: [], scores: {}, duel: null, turn: 'a', activePreset: preset.id };
     if (data.music.src) await audioControls.setTrack(data.music, data.name);
     render();
     notify(`${data.name} cargado: ${data.options.length} opciones.`);
@@ -459,8 +460,6 @@ $('settings-toggle').addEventListener('click', () => {
   $('settings-toggle').setAttribute('aria-expanded', String(open));
   $('settings-toggle').firstChild.textContent = open ? 'CERRAR OPCIONES ' : 'PERSONALIZAR OPCIONES ';
   wheel.resize();
-  wheelA.resize();
-  wheelB.resize();
 });
 
 $('image-file').addEventListener('change', () => {
@@ -532,7 +531,7 @@ document.querySelectorAll('.mode-button').forEach((button) => {
     savePrefs(prefs);
     $('result').hidden = true;
     $('duel-result').hidden = true;
-    state = { ...state, history: [], scores: {}, duel: null };
+    state = { ...state, history: [], scores: {}, duel: null, turn: 'a' };
     render();
     notify(`Modo ${button.textContent.toLowerCase()}.`);
   });
@@ -545,7 +544,7 @@ document.querySelectorAll('.duel-button').forEach((button) => {
     savePrefs(prefs);
     $('result').hidden = true;
     $('duel-result').hidden = true;
-    state = { ...state, history: [], scores: {}, duel: null };
+    state = { ...state, history: [], scores: {}, duel: null, turn: 'a' };
     render();
   });
 });
@@ -668,48 +667,64 @@ function duelPool() {
 
 async function spinOwnWheels() {
   const { a, b } = splitByTeam();
-  if (!a.length || !b.length) {
-    const faltan = [];
-    if (!a.length) faltan.push(teams()[0]?.name ?? 'Jugador 1');
-    if (!b.length) faltan.push(teams()[1]?.name ?? 'Jugador 2');
-    notify(`${faltan.join(' y ')} no tiene opciones asignadas.`);
+  const turno = turnoActual();
+  const opciones = turno === 'a' ? a : b;
+  const rival = turno === 'a' ? b : a;
+  const nombre = nombreTurno();
+  const nombreRival = teams()[turno === 'a' ? 1 : 0]?.name ?? 'el rival';
+
+  if (!opciones.length) {
+    if (!rival.length) {
+      notify('Ninguno de los dos tiene opciones asignadas.');
+    } else {
+      notify(`${nombre} ya no tiene opciones. Pulsa reiniciar para empezar otra ronda.`);
+    }
     return;
   }
+  if (!rival.length) {
+    notify(`${nombreRival} no tiene opciones asignadas.`);
+    return;
+  }
+
   spinning = true;
   $('result').hidden = true;
   $('duel-result').hidden = true;
   render();
 
-  const indexA = Math.floor(Math.random() * a.length);
-  const indexB = Math.floor(Math.random() * b.length);
-  const first = a[indexA];
-  const second = b[indexB];
+  const index = Math.floor(Math.random() * opciones.length);
+  const winner = opciones[index];
+  await wheel.spin(index);
+  showResult(winner);
 
-  await Promise.all([wheelA.spin(indexA), wheelB.spin(indexB)]);
-
+  await new Promise((resolve) => setTimeout(resolve, 900));
   const scores = { ...state.scores };
-  if (first.team) scores[first.team] = (scores[first.team] ?? 0) + 1;
-  if (second.team) scores[second.team] = (scores[second.team] ?? 0) + 1;
-
-  const history = [...state.history, first.id, second.id];
-  const teamA = teams().find((team) => team.id === first.team)?.name ?? '';
-  const teamB = teams().find((team) => team.id === second.team)?.name ?? '';
-  state = {
-    ...state,
-    history,
-    scores,
-    duel: { winner: `${teamA}: ${first.name}  ·  ${teamB}: ${second.name}`, a: first.name, b: second.name }
-  };
+  if (winner.team) scores[winner.team] = (scores[winner.team] ?? 0) + 1;
   spinning = false;
-  update(state);
+  update({
+    ...state,
+    history: [...state.history, winner.id],
+    scores,
+    turn: turno === 'a' ? 'b' : 'a',
+    duel: { winner: `${nombre}: ${winner.name}`, a: nombre, b: winner.name }
+  });
 }
 
 $('undo-button').addEventListener('click', () => {
   if (spinning || !state.history.length) return;
   const lastId = state.history[state.history.length - 1];
   const restored = state.options.find((option) => option.id === lastId);
+  const scores = { ...state.scores };
+  if (restored?.team) {
+    scores[restored.team] = Math.max(0, (scores[restored.team] ?? 0) - 1);
+  }
   $('result').hidden = true;
-  update({ ...state, history: state.history.slice(0, -1) });
+  const porTurnos = prefs.mode === 'duelo' && prefs.duel === 'own';
+  update({
+    ...state,
+    history: state.history.slice(0, -1),
+    scores: porTurnos ? scores : state.scores,
+    turn: porTurnos ? (state.turn === 'a' ? 'b' : 'a') : state.turn
+  });
   notify(`${restored?.name ?? 'La opción'} vuelve a participar.`);
 });
 
@@ -717,7 +732,7 @@ $('reset-button').addEventListener('click', () => {
   if (spinning || !state.history.length) return;
   if (!window.confirm('¿Reiniciar la ronda? Todas las opciones volverán a participar.')) return;
   $('result').hidden = true;
-  update({ ...state, history: [] });
+  update({ ...state, history: [], scores: {}, duel: null, turn: 'a' });
   notify('Ronda reiniciada.');
 });
 
@@ -725,7 +740,7 @@ $('restore-button').addEventListener('click', () => {
   if (spinning) return;
   if (!window.confirm('¿Volver a las opciones publicadas en config.json?')) return;
   $('result').hidden = true;
-  update({ options: [...published.options], history: [], scores: {}, duel: null, activePreset: null });
+  update({ options: [...published.options], history: [], scores: {}, duel: null, turn: 'a', activePreset: null });
   notify('Vueltas a las opciones publicadas.');
 });
 
@@ -740,7 +755,7 @@ $('import-file').addEventListener('change', async (event) => {
   try {
     const options = await importOptions(file);
     if (spinning || !window.confirm('¿Sustituir las opciones actuales por las del archivo?')) return;
-    state = { options, history: [], scores: {}, duel: null, activePreset: null };
+    state = { options, history: [], scores: {}, duel: null, turn: 'a', activePreset: null };
     $('result').hidden = true;
     render();
     notify(`${options.length} opciones importadas.`);
@@ -753,6 +768,6 @@ published = await loadPublishedConfig();
 const audioControls = setupAudio(notify, published.music);
 prefs = readPrefs();
 $('remove-drawn').checked = prefs.removeDrawn;
-state = { options: [...published.options], history: [], scores: {}, duel: null, activePreset: null };
+state = { options: [...published.options], history: [], scores: {}, duel: null, turn: 'a', activePreset: null };
 presets = await loadPresetIndex();
 render();
