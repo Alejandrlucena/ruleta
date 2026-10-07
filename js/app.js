@@ -1,6 +1,6 @@
-﻿import { Roulette } from './roulette.js?v=4';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=4';
-import { setupAudio } from './audio.js?v=4';
+﻿import { Roulette } from './roulette.js?v=5';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=5';
+import { setupAudio } from './audio.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
@@ -11,6 +11,7 @@ let presets = [];
 let spinning = false;
 let previewUrl = null;
 let toastTimer;
+let lastTeamChoice = '';
 
 const TEAM_COLORS = ['#e6a18a', '#b8dd92', '#8da6d8', '#e7c987', '#ad91d0', '#80c5bb', '#df9eaf', '#b8bbef'];
 
@@ -175,7 +176,7 @@ function renderScoreboard() {
   const rows = teams().map((team) => {
     const owned = state.options.filter((option) => option.team === team.id);
     const alive = owned.filter((option) => !drawn.has(option.id)).length;
-    const turns = state.scores[team.id] ?? 0;
+    const turns = (state.scores ?? {})[team.id] ?? 0;
     return { ...team, turns, alive, total: owned.length };
   });
   const leader = [...rows].sort((a, b) => b.turns - a.turns)[0];
@@ -256,6 +257,7 @@ function renderTeamsEditor() {
     editor.append(row);
   });
   const select = $('option-team');
+  const previo = lastTeamChoice;
   select.replaceChildren();
   const none = document.createElement('option');
   none.value = '';
@@ -267,12 +269,18 @@ function renderTeamsEditor() {
     item.textContent = team.name;
     select.append(item);
   });
+  // Se mantiene el equipo que se estaba usando para no tener que elegirlo cada vez.
+  if (previo && teams().some((team) => team.id === previo)) select.value = previo;
   $('option-team-field').hidden = !needsTeams();
   select.hidden = !needsTeams();
   $('option-number-field').hidden = !(prefs.mode === 'duelo' && prefs.duel === 'number');
   $('option-number').hidden = !(prefs.mode === 'duelo' && prefs.duel === 'number');
   $('team-count').textContent = teams().length;
 }
+
+$('option-team').addEventListener('change', (event) => {
+  lastTeamChoice = event.target.value;
+});
 
 function renderModeBar() {
   document.querySelectorAll('.mode-button').forEach((button) => {
@@ -375,7 +383,17 @@ function renderWheels() {
 }
 
 function update(next) {
-  state = next;
+  // Se normaliza aqui para que ningun llamante pueda dejar el estado a medias:
+  // antes, borrar una opcion olvidaba scores y rompia el marcador y el giro.
+  state = {
+    ...next,
+    options: next.options ?? [],
+    history: next.history ?? [],
+    scores: next.scores ?? {},
+    duel: next.duel ?? null,
+    turn: next.turn === 'b' ? 'b' : 'a',
+    activePreset: next.activePreset ?? null
+  };
   render();
 }
 
@@ -496,14 +514,20 @@ $('option-form').addEventListener('submit', async (event) => {
       if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('La URL de la imagen debe ser HTTP, HTTPS o una ruta local.');
       image = url;
     }
-    const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image, team: needsTeams() ? $('option-team').value || null : null, score: randomScore() };
+    const equipoElegido = needsTeams() ? $('option-team').value : '';
+    const numeroElegido = $('option-number').value;
+    const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image, team: equipoElegido || null, score: Number(numeroElegido) > 0 ? Number(numeroElegido) : randomScore() };
     state = { ...state, options: [...state.options, option], activePreset: null };
     $('option-form').reset();
     clearPreview();
+    // El equipo se conserva para encadenar altas sin pulsarlo cada vez.
+    lastTeamChoice = equipoElegido;
+    $('option-team').value = equipoElegido;
     $('upload-text').querySelector('strong').textContent = 'Elige una imagen';
     $('upload-text').querySelector('small').textContent = 'JPG, PNG, WebP o GIF · máx. 12 MB';
     $('result').hidden = true;
     render();
+    $('option-team').value = equipoElegido;
     notify('Opción añadida.');
   } catch (error) {
     notify(error.message || 'No se ha podido añadir la opción.');
