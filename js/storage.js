@@ -5,7 +5,7 @@ export function newId() {
 }
 
 const MODES = ['individual', 'equipos', 'supervivencia', 'duelo'];
-const DUELS = ['list', 'own', 'number'];
+const DUELS = ['list', 'own'];
 
 function normalizeOptions(options) {
   if (!Array.isArray(options)) return [];
@@ -14,13 +14,11 @@ function normalizeOptions(options) {
     let id = typeof option.id === 'string' && option.id ? option.id : newId();
     if (ids.has(id)) id = newId();
     ids.add(id);
-    const score = Number(option.score);
     return {
       id,
       name: option.name.slice(0, 40),
       image: option.image,
-      team: typeof option.team === 'string' && option.team ? option.team : null,
-      score: Number.isFinite(score) ? Math.max(0, Math.min(999, Math.round(score))) : 1 + Math.floor(Math.random() * 99)
+      team: typeof option.team === 'string' && option.team ? option.team : null
     };
   });
 }
@@ -135,7 +133,7 @@ export function buildPreset(name, description, options, music, prefs) {
   return {
     name: (name || 'Mi preset').slice(0, 40),
     description: (description || '').slice(0, 120),
-    options: options.map(({ id, name: optionName, image, team, score }) => ({ id, name: optionName, image, team: team ?? null, score })),
+    options: options.map(({ id, name: optionName, image, team }) => ({ id, name: optionName, image, team: team ?? null })),
     teams: normalizeTeams(prefs?.teams),
     settings: { removeDrawn: prefs?.removeDrawn !== false, mode: MODES.includes(prefs?.mode) ? prefs.mode : 'individual', duel: DUELS.includes(prefs?.duel) ? prefs.duel : 'list' },
     music: { src: music.src, volume: music.volume, autoplay: music.autoplay !== false }

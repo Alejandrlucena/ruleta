@@ -1,6 +1,6 @@
-﻿import { Roulette } from './roulette.js?v=7';
-import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=7';
-import { setupAudio } from './audio.js?v=7';
+﻿import { Roulette } from './roulette.js?v=8';
+import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=8';
+import { setupAudio } from './audio.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 const wheel = new Roulette($('wheel'));
@@ -92,7 +92,6 @@ function renderOptions() {
       const team = teams().find((item) => item.id === option.team);
       if (team) parts.push(team.name.toUpperCase());
     }
-    if (prefs.mode === 'duelo' && prefs.duel === 'number') parts.push(`Nº ${option.score}`);
     const status = document.createElement('small');
     status.textContent = parts.join(' · ');
     info.append(name, status);
@@ -279,8 +278,6 @@ function renderTeamsEditor() {
   if (previo && teams().some((team) => team.id === previo)) select.value = previo;
   $('option-team-field').hidden = !needsTeams();
   select.hidden = !needsTeams();
-  $('option-number-field').hidden = !(prefs.mode === 'duelo' && prefs.duel === 'number');
-  $('option-number').hidden = !(prefs.mode === 'duelo' && prefs.duel === 'number');
   $('team-count').textContent = teams().length;
 }
 
@@ -471,10 +468,6 @@ $('save-preset-button').addEventListener('click', () => {
   notify('Preset descargado. Ejecútalo en guardar-preset.ps1 para publicarlo en el repositorio.');
 });
 
-function randomScore() {
-  return 1 + Math.floor(Math.random() * 99);
-}
-
 function clearPreview() {
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = null;
@@ -526,8 +519,7 @@ $('option-form').addEventListener('submit', async (event) => {
       image = url;
     }
     const equipoElegido = needsTeams() ? $('option-team').value : '';
-    const numeroElegido = $('option-number').value;
-    const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image, team: equipoElegido || null, score: Number(numeroElegido) > 0 ? Number(numeroElegido) : randomScore() };
+    const option = { id: newId(), name: name || `Opción ${state.options.length + 1}`, image, team: equipoElegido || null };
     state = { ...state, options: [...state.options, option], activePreset: null };
     $('option-form').reset();
     clearPreview();
@@ -628,12 +620,6 @@ function showResult(winner) {
   const name = document.createElement('strong');
   name.textContent = winner.name;
   text.append(label, name);
-  if (prefs.mode === 'duelo' && prefs.duel === 'number') {
-    const score = document.createElement('em');
-    score.className = 'result-score';
-    score.textContent = `Nº ${winner.score}`;
-    text.append(score);
-  }
   result.replaceChildren(thumbnail(winner, 'result-image'), text);
   result.hidden = false;
 }
@@ -655,7 +641,7 @@ async function spinDuel() {
   showResult(first);
 
   let secondPool = pool;
-  if (prefs.duel !== 'number' && pool.length > 1) {
+  if (pool.length > 1) {
     secondPool = pool.filter((option) => option.id !== first.id);
   }
   const secondIndex = Math.floor(Math.random() * secondPool.length);
@@ -669,25 +655,13 @@ async function spinDuel() {
     if (!option?.team) return;
     scores[option.team] = (scores[option.team] ?? 0) + 1;
   };
-  let winner;
-  if (prefs.duel === 'number') {
-    const a = first.score ?? 0;
-    const b = second.score ?? 0;
-    if (a > b) { bump(first); winner = `${first.name} gana (Nº ${a} contra ${b})`; }
-    else if (b > a) { bump(second); winner = `${second.name} gana (Nº ${b} contra ${a})`; }
-    else winner = `Empate a Nº ${a}`;
-  } else if (prefs.duel === 'own') {
-    const teamA = teams().find((team) => team.id === first.team)?.name;
-    const teamB = teams().find((team) => team.id === second.team)?.name;
-    winner = `${first.name}${teamA ? ` (${teamA})` : ''} contra ${second.name}${teamB ? ` (${teamB})` : ''}`;
-  } else {
-    bump(first);
-    bump(second);
-    winner = `${first.name} contra ${second.name}`;
-  }
+  bump(first);
+  bump(second);
+  const teamA = teams().find((team) => team.id === first.team)?.name;
+  const teamB = teams().find((team) => team.id === second.team)?.name;
+  const winner = `${first.name}${teamA ? ` (${teamA})` : ''} contra ${second.name}${teamB ? ` (${teamB})` : ''}`;
 
-  const remove = prefs.duel === 'number' ? [first.id, second.id] : [first.id, second.id];
-  const history = [...state.history, ...remove.filter((id, index, all) => all.indexOf(id) === index)];
+  const history = [...state.history, first.id, second.id];
   state = { ...state, history, scores, duel: { winner, a: first.name, b: second.name } };
   spinning = false;
   update(state);

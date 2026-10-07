@@ -7,8 +7,8 @@
     <meta name="description" content="Crea una ruleta con tus imágenes y gira sin repetir resultados." />
     <title>La Ruleta — El azar decide</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="stylesheet" href="./css/style.css?v=7" />
-    <script type="module" src="./js/app.js?v=7"></script>
+    <link rel="stylesheet" href="./css/style.css?v=8" />
+    <script type="module" src="./js/app.js?v=8"></script>
   </head>
   <body>
     <div class="page-glow" aria-hidden="true"></div>
@@ -41,8 +41,7 @@
             </div>
             <div class="duel-bar" id="duel-bar" hidden>
               <button class="duel-button is-active" type="button" data-duel="list" title="Las dos tiradas salen de la misma lista">Lista común</button>
-              <button class="duel-button" type="button" data-duel="own" title="Cada jugador tiene su propia ruleta con sus opciones">Ruletas propias</button>
-              <button class="duel-button" type="button" data-duel="number" title="Las dos tiradas salen de la misma lista y gana el número más alto">Número más alto</button>
+              <button class="duel-button" type="button" data-duel="own" title="Cada jugador tiene su propia ruleta con sus opciones y van por turnos">Ruletas propias</button>
             </div>
 
             <div class="turn-banner" id="turn-banner" hidden>
@@ -115,8 +114,6 @@
                 <input class="text-input" id="option-name" type="text" maxlength="40" placeholder="Ej. Pizza, película, persona..." autocomplete="off" />
                 <label class="field-label team-field" id="option-team-field" for="option-team" hidden>Equipo <span class="optional">opcional</span></label>
                 <select class="text-input" id="option-team" hidden></select>
-                <label class="field-label number-field" id="option-number-field" for="option-number" hidden>Número <span class="optional">para el 1 vs 1</span></label>
-                <input class="text-input" id="option-number" type="number" min="1" max="999" placeholder="Ej. 42" hidden />
                 <button class="add-button" id="add-button" type="submit">+ AÑADIR OPCIÓN</button>
               </form>
               <p class="form-note">Las imágenes subidas se comprimen y se incluyen en el JSON al exportar.</p>
@@ -142,17 +139,12 @@
           </section>
           <section class="card music-card" aria-labelledby="music-title">
             <div class="panel-heading"><div><span class="section-index">05 / AMBIENTE</span><h2 id="music-title">Ponle música</h2></div><span class="music-decoration" aria-hidden="true">♫</span></div>
-            <p class="music-description" id="music-description">La música comienza al girar. Puedes pausarla o ajustar el volumen cuando quieras.</p>
+            <p class="music-description" id="music-description">La música comienza al girar. Puedes pausarla o silenciarla cuando quieras.</p>
             <div class="music-controls">
               <button class="music-play" id="music-play" type="button" aria-label="Reproducir música">▶</button>
-              <button class="music-mute" id="music-mute" type="button" aria-label="Silenciar" aria-pressed="false" hidden>🔊</button>
+              <button class="music-mute" id="music-mute" type="button" aria-label="Silenciar" aria-pressed="false">🔊</button>
               <label class="music-file-button" for="music-file">Elegir MP3</label>
               <input id="music-file" type="file" accept="audio/mpeg,.mp3" />
-              <div class="volume-box">
-                <label class="volume-label" for="music-volume">Volumen</label>
-                <input id="music-volume" type="range" min="0" max="100" step="1" value="45" aria-label="Volumen" />
-                <output class="volume-value" id="volume-value" for="music-volume">45</output>
-              </div>
             </div>
             <span class="music-source" id="music-source">Música de fondo · MP3</span>
           </section>

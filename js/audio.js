@@ -1,19 +1,18 @@
 const VOLUME_KEY = 'la-ruleta-volume-v1';
 const DEFAULT_SONG = './musica.mp3';
+const DEFAULT_VOLUME = 70;
 
 export function setupAudio(notify, initialMusic = null) {
   const audio = new Audio();
   const playButton = document.getElementById('music-play');
   const muteButton = document.getElementById('music-mute');
   const fileInput = document.getElementById('music-file');
-  const volumeInput = document.getElementById('music-volume');
-  const volumeValue = document.getElementById('volume-value');
   const source = document.getElementById('music-source');
   let localUrl = null;
   let pausedByUser = false;
   let pendingUnlock = false;
   let mutedByUser = false;
-  let lastAudibleVolume = null;
+  let volume = DEFAULT_VOLUME;
   let trackSrc = initialMusic?.src || DEFAULT_SONG;
   let trackLabel = null;
   let autoplayWanted = initialMusic ? initialMusic.autoplay !== false : true;
@@ -22,27 +21,16 @@ export function setupAudio(notify, initialMusic = null) {
   try {
     const raw = localStorage.getItem(VOLUME_KEY);
     const stored = Number(raw);
-    if (raw !== null && Number.isFinite(stored) && stored >= 0 && stored <= 100) volumeInput.value = stored;
+    if (raw !== null && Number.isFinite(stored) && stored > 0 && stored <= 100) volume = stored;
   } catch {}
-  if (initialMusic && Number.isFinite(initialMusic.volume)) volumeInput.value = initialMusic.volume;
+  if (initialMusic && Number.isFinite(initialMusic.volume) && initialMusic.volume > 0) volume = initialMusic.volume;
+  audio.volume = volume / 100;
 
-  function syncVolumeUi() {
-    const value = Number(volumeInput.value);
-    volumeValue.textContent = String(value);
-    const silent = value === 0 || mutedByUser;
-    muteButton.hidden = false;
+  function syncMute() {
     muteButton.setAttribute('aria-pressed', String(mutedByUser));
     muteButton.setAttribute('aria-label', mutedByUser ? 'Quitar silencio' : 'Silenciar');
     muteButton.textContent = mutedByUser ? '🔇' : '🔊';
-    muteButton.classList.toggle('is-silent', silent);
   }
-
-  function applyVolume() {
-    audio.volume = Number(volumeInput.value) / 100;
-    syncVolumeUi();
-  }
-
-  applyVolume();
 
   function syncButton() {
     const playing = !audio.paused;
@@ -50,10 +38,12 @@ export function setupAudio(notify, initialMusic = null) {
     playButton.setAttribute('aria-label', playing ? 'Pausar música' : 'Reproducir música');
   }
 
+  syncMute();
+
   async function play() {
     if (!audio.src) audio.src = trackSrc;
     audio.muted = mutedByUser;
-    applyVolume();
+    audio.volume = volume / 100;
     try {
       await audio.play();
       source.textContent = trackLabel || 'Música de fondo';
@@ -117,11 +107,8 @@ export function setupAudio(notify, initialMusic = null) {
 
   muteButton.addEventListener('click', () => {
     mutedByUser = !mutedByUser;
-    if (!mutedByUser && Number(volumeInput.value) === 0 && lastAudibleVolume) volumeInput.value = lastAudibleVolume;
-    if (mutedByUser && Number(volumeInput.value) > 0) lastAudibleVolume = volumeInput.value;
-    try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
-    applyVolume();
     audio.muted = mutedByUser;
+    syncMute();
     source.textContent = mutedByUser ? 'Música silenciada' : (trackLabel || 'Música de fondo');
   });
 
@@ -149,20 +136,6 @@ export function setupAudio(notify, initialMusic = null) {
     if (resume) void play();
   });
 
-  volumeInput.addEventListener('input', () => {
-    const value = Number(volumeInput.value);
-    if (value > 0) {
-      lastAudibleVolume = value;
-      if (mutedByUser) {
-        mutedByUser = false;
-        audio.muted = false;
-        source.textContent = trackLabel || 'Música de fondo';
-      }
-    }
-    applyVolume();
-    try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
-  });
-
   audio.addEventListener('play', syncButton);
   audio.addEventListener('pause', syncButton);
   audio.addEventListener('error', () => {
@@ -174,18 +147,17 @@ export function setupAudio(notify, initialMusic = null) {
 
   return {
     getTrack() {
-      return { src: localUrl ? null : trackSrc, label: trackLabel, volume: Number(volumeInput.value), muted: mutedByUser };
+      return { src: localUrl ? null : trackSrc, label: trackLabel, volume, muted: mutedByUser };
     },
     async setTrack(music, label) {
       if (!music?.src) return;
       trackSrc = music.src;
       trackLabel = label || null;
-      if (Number.isFinite(music.volume)) {
-        volumeInput.value = music.volume;
-        try { localStorage.setItem(VOLUME_KEY, volumeInput.value); } catch {}
+      if (Number.isFinite(music.volume) && music.volume > 0) {
+        volume = Math.max(1, Math.min(100, music.volume));
+        try { localStorage.setItem(VOLUME_KEY, volume); } catch {}
       }
-      if (Number(volumeInput.value) > 0) lastAudibleVolume = Number(volumeInput.value);
-      applyVolume();
+      audio.volume = volume / 100;
       pausedByUser = false;
       pendingUnlock = false;
       audio.pause();

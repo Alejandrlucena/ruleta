@@ -82,7 +82,6 @@ h2 { margin-top: 7px; font-size: 23px; font-weight: 700; letter-spacing: -.055em
 .duel-result { margin: 18px auto 0; padding: 13px; max-width: 360px; border: 1px solid #d7fa836e; border-radius: 10px; background: #d7fa8314; text-align: center; }
 .duel-result small { display: block; margin-bottom: 4px; color: #d7fa83; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
 .duel-result strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
-.result-score { display: block; margin-top: 4px; color: #d7fa83; font-size: 11px; font-style: normal; font-weight: 800; }
 .teams-card .panel-heading { margin-bottom: 14px; }
 .team-editor { display: grid; gap: 6px; margin-bottom: 12px; }
 .team-row { display: flex; align-items: center; gap: 9px; }
@@ -90,7 +89,7 @@ h2 { margin-top: 7px; font-size: 23px; font-weight: 700; letter-spacing: -.055em
 .team-name-input:focus { border-color: #d7fa83; }
 .team-form { display: flex; gap: 8px; }
 .team-form .text-input { flex: 1; min-width: 0; }
-.team-field, .number-field { margin-top: 19px; }
+.team-field { margin-top: 19px; }
 select.text-input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #8c92a9 50%), linear-gradient(135deg, #8c92a9 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
 .option-team-select { flex: none; max-width: 96px; padding: 6px 8px; border: 1px solid #454a62; border-left: 3px solid #555b73; border-radius: 6px; background: #272b42; color: #e3e4ec; font-size: 10px; }
 .rule-switch { display: inline-flex; align-items: center; gap: 11px; margin-top: 20px; cursor: pointer; text-align: left; }
@@ -186,11 +185,9 @@ code { font: 11px 'Space Grotesk', monospace; color: #d7fa83; }
 .music-play:hover { background: #e9ffad; }
 .music-file-button { display: none; }
 .settings-open .music-file-button { display: inline-flex; }
-.volume-box { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 190px; }
-.volume-label { color: #a9afc4; font-size: 10px; white-space: nowrap; }
-#music-volume { flex: 1; min-width: 60px; height: 20px; accent-color: #d7fa83; cursor: pointer; }
-.volume-value { flex: none; width: 27px; text-align: right; color: #d7fa83; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.music-mute { flex: none; border: 1px solid #555b73; border-radius: 6px; background: #272b42; padding: 6px 8px; font-size: 13px; line-height: 1; }
+.volume-box { display: none; }
+.music-mute { flex: none; border: 1px solid #555b73; border-radius: 6px; background: #272b42; padding: 9px 11px; font-size: 14px; line-height: 1; cursor: pointer; }
+.music-mute:hover { border-color: #d7fa83; }
 .music-mute[aria-pressed='true'] { border-color: #fb987c; color: #fb987c; }
 .music-source { display: block; color: #8188a4; font-size: 10px; margin-top: 17px; overflow-wrap: anywhere; }
 .page-note { display: none; color: #848ca7; font-size: 11px; line-height: 1.65; margin: 21px 0 65px; }
@@ -218,9 +215,7 @@ footer span { color: #d7fa83; font-size: 16px; }
   .bottom-grid { margin-top: 19px; }
 }
 @media (max-width: 430px) {
-  .volume-box { min-width: 0; flex: 1 1 100%; }
   .music-controls { gap: 9px; }
-  .volume-label { font-size: 9px; }
   .mode-bar { gap: 4px; padding: 3px; }
   .mode-button { min-width: 0; padding: 9px 6px; font-size: 10px; }
   .duel-button { padding: 7px 6px; font-size: 9px; }
