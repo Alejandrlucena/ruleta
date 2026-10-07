@@ -89,9 +89,10 @@ export class Roulette {
       ctx.strokeStyle = '#22263c';
       ctx.stroke();
 
-      const x = center + Math.cos(angle) * radius * .62;
-      const y = center + Math.sin(angle) * radius * .62;
-      if (count <= 20) {
+      const image = this.imageFor(option);
+      if (image) {
+        const x = center + Math.cos(angle) * radius * .62;
+        const y = center + Math.sin(angle) * radius * .62;
         const thumbRadius = Math.max(8, Math.min(38, radius * .19, count === 1 ? 38 : Math.sin(slice / 2) * radius * .54));
         ctx.save();
         ctx.beginPath();
@@ -99,34 +100,21 @@ export class Roulette {
         ctx.clip();
         ctx.fillStyle = '#252a41';
         ctx.fill();
-        const image = this.imageFor(option);
-        if (image) {
-          const scale = Math.max(thumbRadius * 2 / image.naturalWidth, thumbRadius * 2 / image.naturalHeight);
-          const width = image.naturalWidth * scale;
-          const height = image.naturalHeight * scale;
-          ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
-        } else {
-          ctx.fillStyle = '#f5f2ed';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.font = `700 ${Math.max(10, thumbRadius * .9)}px 'Space Grotesk', sans-serif`;
-          ctx.fillText(option.name.slice(0, 1).toUpperCase() || String(index + 1), x, y);
-        }
+        const scale = Math.max(thumbRadius * 2 / image.naturalWidth, thumbRadius * 2 / image.naturalHeight);
+        const width = image.naturalWidth * scale;
+        const height = image.naturalHeight * scale;
+        ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
         ctx.restore();
         if (count <= 7) {
           ctx.fillStyle = '#1c2234';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.font = `700 ${Math.max(10, Math.min(13, this.size * .028))}px 'DM Sans', sans-serif`;
-          const name = option.name.length > 12 ? `${option.name.slice(0, 11)}…` : option.name;
-          ctx.fillText(name, x, y + thumbRadius + 13, radius * .43);
+          const name = this.fit(option.name, radius * .43);
+          ctx.fillText(name, x, y + thumbRadius + 13);
         }
       } else {
-        ctx.fillStyle = '#1c2234';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `800 ${count > 60 ? 9 : 12}px 'DM Sans', sans-serif`;
-        ctx.fillText(String(index + 1), center + Math.cos(angle) * radius * .72, center + Math.sin(angle) * radius * .72);
+        this.drawRadialText(option.name, angle, count, slice, radius, center);
       }
     });
     ctx.beginPath();
@@ -134,6 +122,33 @@ export class Roulette {
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#25293f';
     ctx.stroke();
+  }
+
+  fit(text, maxWidth) {
+    if (this.context.measureText(text).width <= maxWidth) return text;
+    let cut = text.length - 1;
+    while (cut > 1 && this.context.measureText(`${text.slice(0, cut)}…`).width > maxWidth) cut -= 1;
+    return `${text.slice(0, cut)}…`;
+  }
+
+  drawRadialText(name, angle, count, slice, radius, center) {
+    const ctx = this.context;
+    const text = String(name || '').trim() || '?';
+    const inner = radius * (count > 60 ? .5 : .42);
+    const outer = radius * (count > 40 ? .92 : .88);
+    const available = outer - inner;
+    const cap = Math.max(6, Math.floor(available / (Math.max(8, this.size * .019) * .56)));
+
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(angle);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    const size = Math.max(7, Math.min(count > 40 ? 10 : 13, this.size * .022));
+    ctx.font = `700 ${size}px 'DM Sans', sans-serif`;
+    ctx.fillStyle = '#1c2234';
+    ctx.fillText(this.fit(text, cap * size * .56), outer, 0);
+    ctx.restore();
   }
 
   spin(index) {
