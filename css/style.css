@@ -188,7 +188,6 @@ code { font: 11px 'Space Grotesk', monospace; color: #d7fa83; }
 .music-play:hover { background: #e9ffad; }
 .music-file-button { display: none; }
 .settings-open .music-file-button { display: inline-flex; }
-.volume-box { display: none; }
 .music-mute { flex: none; border: 1px solid #555b73; border-radius: 6px; background: #272b42; padding: 9px 11px; font-size: 14px; line-height: 1; cursor: pointer; }
 .music-mute:hover { border-color: #d7fa83; }
 .music-mute[aria-pressed='true'] { border-color: #fb987c; color: #fb987c; }
@@ -204,7 +203,6 @@ footer span { color: #d7fa83; font-size: 16px; }
 .gh-dialog h2 { margin: 0; font-size: 19px; letter-spacing: -.04em; }
 .gh-text { color: #a9afc4; font-size: 12px; line-height: 1.6; }
 .gh-text a { color: #d7fa83; }
-.gh-code { padding: 12px; border: 1px dashed #d7fa83; border-radius: 9px; background: #d7fa8314; color: #d7fa83; font-family: 'Space Grotesk', monospace; font-size: 22px; font-weight: 700; letter-spacing: .12em; text-align: center; }
 .gh-steps { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: #a9afc4; font-size: 12px; line-height: 1.55; }
 .gh-steps a { color: #d7fa83; overflow-wrap: anywhere; }
 .gh-steps em { color: #f5f2ed; font-style: normal; font-weight: 700; }
