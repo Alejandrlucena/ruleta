@@ -1,4 +1,4 @@
-﻿import { Roulette } from './roulette.js?v=10';
+import { Roulette } from './roulette.js?v=10';
 import { buildPreset, compressImage, downloadJson, exportOptions, importOptions, loadPreset, loadPresetIndex, loadPublishedConfig, newId, readPrefs, savePrefs } from './storage.js?v=10';
 import { setupAudio } from './audio.js?v=10';
 import { cerrarSesion, enlaceToken, guardarToken, publicarPreset, token, verificarToken } from './github.js?v=10';
